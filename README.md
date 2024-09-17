@@ -1,4 +1,4 @@
-# Exposicion - IS2
+# Proyecto - IS2
 *Members:*
 - Ludy Astrid Agudelo
 - Juan Diego Cortes

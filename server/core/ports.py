@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
-
 from core import models
-
 
 class DocumentRepositoryPort(ABC):
     @abstractmethod
@@ -13,9 +11,14 @@ class DocumentRepositoryPort(ABC):
     def get_documents(self, query: str, n_results: int | None = None) -> List[models.Document]:
         pass
 
+
 class UserRepositoryPort(ABC):
     @abstractmethod
-    def save_user(self, user: models.User) -> None:
+    def register_user(self, user: models.User) -> None:
+        pass
+
+    @abstractmethod
+    def login_user(self, email: str, password: str) -> models.User | None:
         pass
 
     @abstractmethod

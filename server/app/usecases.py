@@ -17,18 +17,19 @@ class RAGService:
         document = Document(content=content)
         self.document_repo.save_document(document)
 
+
 class UserService:
     def __init__(self, user_repo: ports.UserRepositoryPort):
         self.user_repo = user_repo
+
+    def register_user(self, user):
+        self.user_repo.register_user(user)
 
     def get_user_by_id(self, user_id: str):
         return self.user_repo.get_user_by_id(user_id)
 
     def get_users(self, query: str = None):
         return self.user_repo.get_users(query)
-
-    def save_user(self, user):
-        self.user_repo.save_user(user)
 
     def delete_user(self, user_id: str):
         self.user_repo.delete_user(user_id)

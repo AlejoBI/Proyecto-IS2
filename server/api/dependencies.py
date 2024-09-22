@@ -10,10 +10,10 @@ class RAGServiceSingleton:
     @classmethod
     def get_instance(cls) -> usecases.RAGService:
         if cls._instance is None:
-            configs = configurations.Configs()
-            openai_adapter = OpenAIAdapter(api_key=configs.openai_api_key, model=configs.model,
-                                           max_tokens=configs.max_tokens, temperature=configs.temperature)
-            document_repo = ChromaDBAdapter(number_of_vectorial_results=configs.number_of_vectorial_results)
-            user_repo = FirebaseUserAdapter(configs.firebase_uri)
-            cls._instance = usecases.RAGService(document_repo=document_repo, openai_adapter=openai_adapter, user_repo=user_repo)
+            configs = configurations.Settings()
+            openai_adapter = OpenAIAdapter(api_key=configs.OPENAI_API_KEY, model=configs.MODEL,
+                                           max_tokens=configs.MAX_TOKENS, temperature=configs.TEMPERATURE)
+            document_repo = ChromaDBAdapter(number_of_vectorial_results=configs.NUMBER_OF_VECTORIAL_RESULTS, uri=configs.CHROMADB_URI)
+            user_repo = FirebaseUserAdapter(configs.FIREBASE_URI)
+            cls._instance = usecases.RAGService(document_repo=document_repo, user_repo=user_repo, openai_adapter=openai_adapter)
         return cls._instance

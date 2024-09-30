@@ -8,15 +8,16 @@ class Settings(BaseSettings):
 
     # Config react_vite
     REACT_VITE_CONNECTION: str
-    
-    #Hashing
-    SECRET_KEY: str
 
-    # Configuración para firebase
-    FIREBASE_URI: str   
-    
-    # Configuración para ChromaDB
-    CHROMADB_URI: str
+    # Hashing
+    SECRET_ACCESS_TOKEN: str
+    ALGORITHM: str
+
+    # Configuración para mongodb
+    MONGODB_URI: str
+    MONGODB_DATABASE: str
+    MONGODB_COLLECTION_USERS: str
+    MONGODB_COLLECTION_DOCUMENTS: str
 
     # Configuración para OpenAI
     OPENAI_API_KEY: str

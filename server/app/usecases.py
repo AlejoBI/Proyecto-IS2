@@ -1,35 +1,55 @@
-from core.models import Document
-from core import ports
+from server.core.models import Document, User
+from server.core import ports
+from server.helpers.strategies import FileReader
+import os
+from fastapi import UploadFile
 
 
 class RAGService:
-    def __init__(self, document_repo: ports.DocumentRepositoryPort, openai_adapter: ports.LlmPort):
+    def __init__(self, document_repo: ports.DocumentRepositoryPort, mongo_repo: ports.MongoDBRepositoryPort, openai_adapter: ports.LlmPort):
         self.document_repo = document_repo
+        self.mongo_repo = mongo_repo
         self.openai_adapter = openai_adapter
 
+    # RAG methods
     def generate_answer(self, query: str) -> str:
-        documents = self.document_repo.get_documents(query)
+        documents = self.document_repo.get_documents(query, self.openai_adapter)
         print(f"Documents: {documents}")
         context = " ".join([doc.content for doc in documents])
         return self.openai_adapter.generate_text(prompt=query, retrieval_context=context)
 
-    def save_document(self, content: str) -> None:
-        document = Document(content=content)
-        self.document_repo.save_document(document)
+    def save_document(self, file: UploadFile) -> None:
+        # Obtener el nombre del archivo
+        file_name = file.filename
 
+        # Crear la carpeta 'media' si no existe
+        os.makedirs('media', exist_ok=True)
 
-class UserService:
-    def __init__(self, user_repo: ports.UserRepositoryPort):
-        self.user_repo = user_repo
+        # Guardar el archivo en la carpeta 'media'
+        file_path = os.path.join('media', file_name)
+        with open(file_path, 'wb') as f:
+            f.write(file.file.read())
 
-    def register_user(self, user):
-        self.user_repo.register_user(user)
+        #Crear modelo ducumento con valores iniciales
+        document = Document(tittle=file_name, path=file_path)
+        #Obtengo el contenido del documento
+        content = FileReader(document.path).read_file()
+        print(content)
 
-    def get_user_by_id(self, user_id: str):
-        return self.user_repo.get_user_by_id(user_id)
+        #Guardar información del documento en MongoDB
+        self.mongo_repo.save_document(document)
+        #Realiza embedding, chunks y guarda en ChromaDB
+        self.document_repo.save_document(document, content, self.openai_adapter)
 
-    def get_users(self, query: str = None):
-        return self.user_repo.get_users(query)
+    # User methods
+    def save_user(self, user) -> None:
+        self.mongo_repo.save_user(user)
 
-    def delete_user(self, user_id: str):
-        self.user_repo.delete_user(user_id)
+    def get_user(self, email: str, password: str) -> User:
+        return self.mongo_repo.get_user(email, password)
+
+    def get_document(self, document_id: str) -> Document:
+        return self.mongo_repo.get_document(document_id)
+
+    def get_vectors(self):
+        return self.document_repo.get_vectors()

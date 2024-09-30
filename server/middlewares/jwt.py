@@ -1,13 +1,17 @@
 import jwt
 from server.app import configurations
+from datetime import datetime, timedelta  # Para manejar tiempos de expiración
 
 configs = configurations.Settings()
 
 SECRET_ACCESS_TOKEN = configs.SECRET_ACCESS_TOKEN
 ALGORITHM = configs.ALGORITHM
 
-def create_access_token(data: dict):
-    return jwt.encode(data, SECRET_ACCESS_TOKEN, algorithm=ALGORITHM)
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_ACCESS_TOKEN, algorithm=ALGORITHM)
 
 def validate_token(token: str):
     try:

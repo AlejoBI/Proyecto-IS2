@@ -1,4 +1,6 @@
+from typing import Optional
 import pydantic
+from pydantic import EmailStr, constr
 import uuid
 
 def generate_uuid() -> str:
@@ -7,11 +9,12 @@ def generate_uuid() -> str:
 
 class Document(pydantic.BaseModel):
     id: str = pydantic.Field(default_factory=generate_uuid)
-    content: str
+    tittle: Optional[str] = None
+    path: Optional[str] = None
+    content: Optional[str] = None
 
 class User(pydantic.BaseModel):
-    id: str = pydantic.Field(default_factory=generate_uuid)
-    name: str
-    email: str
-    password: str
+    username: constr(min_length=3, max_length=50)
+    email: EmailStr
+    password: constr(min_length=8)
     role: str

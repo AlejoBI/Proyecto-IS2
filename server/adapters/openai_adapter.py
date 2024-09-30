@@ -1,6 +1,6 @@
 import openai
 
-from core import ports
+from server.core import ports
 
 
 class OpenAIAdapter(ports.LlmPort):

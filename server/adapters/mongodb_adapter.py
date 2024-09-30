@@ -1,69 +1,46 @@
+from abc import ABC
 from typing import List
 from server.core import ports
 from server.core import models
-from google.cloud import firestore
-import firebase_admin
-from server.app import configurations
-from firebase_admin import credentials, auth
+import pymongo as pm
+import bcrypt
+from server.middlewares import jwt
 
+class MongoDBAdapter(ports.MongoDBRepositoryPort, ABC):
+    def __init__(self, uri: str, database: str, users_collection: str, documents_collection: str) -> None:
+        self.client = pm.MongoClient(uri)
+        self.db = self.client[database]
+        self.users = self.db[users_collection]
+        self.documents = self.db[documents_collection]
 
-class FirebaseUserAdapter(ports.UserRepositoryPort):
-    def __init__(self) -> None:
-        cred = credentials.Certificate(configurations.settings.FIREBASE_CONFIG)
-        firebase_admin.initialize_app(cred)
-        self.db = firestore.Client()
+    # User methods --------------------------------
+    def save_user(self, user: models.User) -> dict | None:
+        self.users.insert_one(user.dict())
+        return {
+            "username": user.username,
+            "email": user.email
+        }
 
-    def register_user(self, user: models.User) -> None:
-        try:
-            print(f"Guardando usuario: {user}")
-            auth_user = auth.create_user(email=user.email, password=user.password)
-            self.db.collection("users").document(auth_user.uid).set({
-                "id": auth_user.uid,
-                "name": user.name,
-                "email": user.email,
-                "role": user.role
-            })
-        except firebase_admin.exceptions.FirebaseError as e:
-            print(f"Error al registrar usuario: {e}")
-            raise
-
-    def login_user(self, email: str, password: str) -> models.User | None:
-        try:
-            auth_user = auth.get_user_by_email(email)
-            user_data = self.db.collection("users").document(auth_user.uid).get()
-            if user_data.exists:
-                user_data = user_data.to_dict()
-                return models.User(id=auth_user.uid, name=user_data['name'], email=user_data['email'])
-            else:
-                print("Usuario no encontrado en Firestore")
-                return None
-        except firebase_admin.exceptions.FirebaseError as e:
-            print(f"Error al iniciar sesión: {e}")
-            return None
-
-    def get_users(self, query: str = None) -> List[models.User]:
-        users_ref = self.db.collection("users")
-        if query:
-            users_ref = users_ref.where("name", ">=", query).where("name", "<=", query + "\uf8ff")
-        users = users_ref.stream()
-        return [models.User(id=user.id, **user.to_dict()) for user in users]
-
-    def get_user_by_id(self, user_id: str) -> models.User | None:
-        user_data = self.db.collection("users").document(user_id).get()
-        if user_data.exists:
-            return models.User(id=user_id, **user_data.to_dict())
+    def get_user(self, email: str, password: str) -> dict | None:
+        user = self.users.find_one({"email": email})
+        if user:
+            password_bytes = password.encode()
+            hashed_bytes = user["password"].encode()
+            if bcrypt.checkpw(password_bytes, hashed_bytes):
+                return {
+                    "username": user["username"],
+                    "email": user["email"]
+                }
         return None
 
-    def update_user_by_id(self, user: models.User) -> None:
-        self.db.collection("users").document(user.id).update({
-            "name": user.name,
-            "email": user.email,
-            "password": user.password,
-            "role": user.role
-        })
+    # Document methods --------------------------------
+    def save_document(self, document: models.Document) -> None:
+        self.documents.insert_one(
+            {"document_id": document.id, "tittle": document.tittle, "path": document.path, "content": document.content})
 
-    def delete_user(self, user_id: str) -> None:
-        self.db.collection("users").document(user_id).delete()
-
-
-firebase_adapter = FirebaseUserAdapter()
+    def get_document(self, document_id: str) -> models.Document | None:
+        document = self.documents.find_one({"document_id": document_id})
+        if document:
+            return models.Document(id=document["document_id"], tittle=document["tittle"],
+                                   path=document["path"], content=document["content"])
+        return None

@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "project"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = {extras = ["email"], version = "^2.9.2"}
+fastapi = "^0.115.0"
+uvicorn = "^0.30.6"
+pydantic-settings = "^2.5.2"
+openai = "^1.47.0"
+chromadb = "^0.5.7"
+pymongo = "^4.9.1"
+pyjwt = "^2.9.0"
+bcrypt = "^4.2.0"
+tiktoken = "^0.7.0"
+pypdf2 = "^3.0.1"
+python-docx = "^1.1.2"
+python-multipart = "^0.0.12"
+numpy = "^2.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

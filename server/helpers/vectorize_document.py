@@ -9,11 +9,10 @@ def get_openai_embeddings(text: str, openai_client) -> list[float]:
     return response.data[0].embedding  # Devolver la lista de floats
 
 # Función para convertir el contenido de un documento en vectores
-async def document_to_vectors(content: str, openai_client) -> list[list[float]]:
+def document_to_vectors(content: str, openai_client) -> list[list[float]]:
     chunks = chunk_text(content, max_tokens=2048)
-    tasks = [get_openai_embeddings(chunk, openai_client) for chunk in chunks]
-    content_vectors = await asyncio.gather(*tasks)
-    return content_vectors
+    content_vectors = [get_openai_embeddings(chunk, openai_client) for chunk in chunks]
+    return content_vectors  # Devuelve una lista de listas de embeddings
 
 
 # Función para dividir texto en fragmentos, respetando un máximo de tokens

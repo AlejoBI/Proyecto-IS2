@@ -31,7 +31,7 @@ class RAGService:
             f.write(file.file.read())
 
         #Crear modelo ducumento con valores iniciales
-        document = Document(tittle=file_name, path=file_path)
+        document = Document(title=file_name, path=file_path)
         #Obtengo el contenido del documento
         content = FileReader(document.path).read_file()
         print(content)
@@ -48,8 +48,8 @@ class RAGService:
     def get_user(self, email: str, password: str) -> User:
         return self.mongo_repo.get_user(email, password)
 
-    def get_document(self, document_id: str) -> Document:
-        return self.mongo_repo.get_document(document_id)
+    def get_document(self, id: str) -> Document:
+        return self.mongo_repo.get_document(id)
 
     def get_vectors(self):
         return self.document_repo.get_vectors()

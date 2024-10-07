@@ -1,1 +1,4 @@
 Hola, estamos probando el sistema de archivos. Saludos.
+Mi nombre es Juan.
+Tengo 25 años.
+Quiero ser programador.

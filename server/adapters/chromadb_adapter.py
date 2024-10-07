@@ -1,3 +1,4 @@
+from abc import ABC
 import chromadb
 import numpy as np
 from typing import List
@@ -5,15 +6,14 @@ from server.core import ports
 from server.core import models
 from server.helpers.vectorize_document import document_to_vectors, get_openai_embeddings
 
-class ChromaDBAdapter(ports.DocumentRepositoryPort):
+class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
     def __init__(self, number_of_vectorial_results: int) -> None:
         self.client = chromadb.Client()
         self.collection = self.client.create_collection("documents")
         self._number_of_vectorial_results = number_of_vectorial_results
 
-    # Guardar un documento con embeddings generados por OpenAI
-    async def save_document(self, document: models.Document, content: str, openai_client) -> None:
-        embeddings_document = await document_to_vectors(content, openai_client)
+    def save_document(self, document: models.Document, content: str, openai_client) -> None:
+        embeddings_document = document_to_vectors(content, openai_client)
 
         # Si hay más de un embedding, combinarlo promediando
         if len(embeddings_document) > 1:
@@ -23,12 +23,11 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort):
 
         # Agregar el documento a ChromaDB con su embedding
         self.collection.add(
-            ids=[document.document_id],
+            ids=[document.id],
             embeddings=[combined_embedding],  # Aseguramos que sea una lista de embeddings
             documents=[content]
         )
 
-    # Obtener documentos usando embeddings generados para la query
     def get_documents(self, query: str, openai_client, n_results: int | None = None) -> List[models.Document]:
         if not n_results:
             n_results = self._number_of_vectorial_results
@@ -46,6 +45,6 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort):
                 documents.append(models.Document(id=doc_id, content=results['documents'][i][0]))
         return documents
 
-    # Obtener vectores almacenados en la colección
     def get_vectors(self):
+        """Devuelve los vectores almacenados en la colección."""
         return self.collection.get(include=['embeddings', 'documents', 'metadatas'])

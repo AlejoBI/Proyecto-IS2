@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import List
 from server.core import ports
 from server.core import models
@@ -6,7 +5,7 @@ import pymongo as pm
 import bcrypt
 from server.middlewares import jwt
 
-class MongoDBAdapter(ports.MongoDBRepositoryPort, ABC):
+class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def __init__(self, uri: str, database: str, users_collection: str, documents_collection: str) -> None:
         self.client = pm.MongoClient(uri)
         self.db = self.client[database]
@@ -36,11 +35,11 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort, ABC):
     # Document methods --------------------------------
     def save_document(self, document: models.Document) -> None:
         self.documents.insert_one(
-            {"document_id": document.id, "tittle": document.tittle, "path": document.path, "content": document.content})
+            {"id": document.id, "title": document.title, "path": document.path, "content": document.content})
 
-    def get_document(self, document_id: str) -> models.Document | None:
-        document = self.documents.find_one({"document_id": document_id})
+    def get_document(self, id: str) -> models.Document | None:
+        document = self.documents.find_one({"id": id})
         if document:
-            return models.Document(id=document["document_id"], tittle=document["tittle"],
+            return models.Document(id=document["id"], title=document["title"],
                                    path=document["path"], content=document["content"])
         return None

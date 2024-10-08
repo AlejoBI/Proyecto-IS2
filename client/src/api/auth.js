@@ -1,6 +1,5 @@
 import axios from './axios';
 
-
 export const registerRequest = async (user) => {
     const res = await axios.post(`/register`, user);
     return res.data;
@@ -15,5 +14,25 @@ export const logoutRequest = () => axios.post(`/logout`);
 
 export const checkAuthRequest = async () => {
     const res = await axios.get(`/check-auth`);
+    return res.data;
+};
+
+// Subida de documentos
+export const uploadDocumentRequest = async (formData) => {
+    const res = await axios.post(`/save-document`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+    return res.data;
+};
+
+// Generación de respuesta
+export const generateAnswerRequest = async (question) => {
+    const res = await axios.get(`/generate-answer`, {
+        params: {
+            query: question,
+        }
+    });
     return res.data;
 };

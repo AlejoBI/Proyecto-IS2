@@ -19,8 +19,7 @@ def generate_answer(query: str,
 def save_document(file: UploadFile = File(...),
                         rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
     # Guardar la información del archivo en MongoDB
-    rag_service.save_document(file)
-    return {"status": "Document saved successfully"}
+    return rag_service.save_document(file)
 
 @rag_router.get("/get-document")
 def get_document(document_id: str,

@@ -18,7 +18,7 @@ class RAGService:
         context = " ".join([doc.content for doc in documents])
         return self.openai_adapter.generate_text(prompt=query, retrieval_context=context)
 
-    def save_document(self, file: UploadFile) -> None:
+    def save_document(self, file: UploadFile) -> dict:
         # Obtener el nombre del archivo
         file_name = file.filename
 
@@ -30,16 +30,25 @@ class RAGService:
         with open(file_path, 'wb') as f:
             f.write(file.file.read())
 
-        #Crear modelo ducumento con valores iniciales
+        # Crear el modelo del documento con valores iniciales
         document = Document(title=file_name, path=file_path)
-        #Obtengo el contenido del documento
-        content = FileReader(document.path).read_file()
-        print(content)
 
-        #Guardar información del documento en MongoDB
-        self.mongo_repo.save_document(document)
-        #Realiza embedding, chunks y guarda en ChromaDB
-        self.document_repo.save_document(document, content, self.openai_adapter)
+        # strategies
+        try:
+            content = FileReader(document.path).read_file()
+            if isinstance(content, str) and content.startswith("File not found") or content.startswith(
+                    "An error occurred"):
+                return {"status": content}  # Devolver mensaje de error específico
+
+            self.mongo_repo.save_document(document)
+            self.document_repo.save_document(document, content, self.openai_adapter)
+
+            return {"status": "Document saved successfully"}
+
+        except ValueError as ve:
+            return {"status": str(ve)}  # Si el archivo no es soportado, devolver mensaje claro
+        except Exception as e:
+            return {"status": str(e)}  # Otros errores
 
     # User methods
     def save_user(self, user) -> None:

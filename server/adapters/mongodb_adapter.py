@@ -3,7 +3,8 @@ from server.core import ports
 from server.core import models
 import pymongo as pm
 import bcrypt
-from server.middlewares import jwt
+from server.middlewares.jwt import create_access_token
+from datetime import timedelta
 
 class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def __init__(self, uri: str, database: str, users_collection: str, documents_collection: str) -> None:
@@ -14,7 +15,16 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
 
     # User methods --------------------------------
     def save_user(self, user: models.User) -> dict | None:
-        self.users.insert_one(user.dict())
+        # Hashear la contraseña antes de guardarla
+        hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
+
+        # Actualizar el modelo de usuario con la contraseña hasheada
+        user_dict = user.dict()
+        user_dict["password"] = hashed_password.decode('utf-8')
+
+        # Guardar el usuario con la contraseña hasheada en la base de datos
+        self.users.insert_one(user_dict)
+
         return {
             "username": user.username,
             "email": user.email

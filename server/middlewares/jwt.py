@@ -1,9 +1,8 @@
 import jwt
 from server.app import configurations
-from datetime import datetime, timedelta  # Para manejar tiempos de expiración
+from datetime import datetime, timedelta
 
 configs = configurations.Settings()
-
 SECRET_ACCESS_TOKEN = configs.SECRET_ACCESS_TOKEN
 ALGORITHM = configs.ALGORITHM
 
@@ -17,5 +16,5 @@ def validate_token(token: str):
     try:
         jwt.decode(token, SECRET_ACCESS_TOKEN, algorithms=[ALGORITHM])
         return True
-    except:
+    except jwt.PyJWTError:
         return False

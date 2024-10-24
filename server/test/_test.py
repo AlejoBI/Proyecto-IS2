@@ -10,6 +10,19 @@ import os
 from server.middlewares.jwt import create_access_token
 from server.app.usecases import RAGService
 
+from fastapi.testclient import TestClient
+from server.api.routers import rag_router  # El router de las rutas
+from server.app.configurations import Settings  # Para la configuración
+
+# Crear el cliente de pruebas para FastAPI
+client = TestClient(rag_router)
+
+
+# Configuración inicial de las pruebas (puede variar según tu configuración)
+@pytest.fixture(scope="module")
+def test_settings():
+    return Settings()
+
 
 @pytest.fixture
 def mock_repositories():
@@ -25,42 +38,41 @@ def rag_service(mock_repositories):
     return RAGService(document_repo, mongo_repo, openai_adapter)
 
 
-# Prueba de E2E: subir un documento, hacer una pregunta y obtener una respuesta
-def test_chat_rag_e2e(rag_service, mock_repositories):
-    document_repo, mongo_repo, openai_adapter = mock_repositories
+# Prueba End-to-End
+def test_e2e_document_upload_and_question(test_settings):
+    # 1. Simulate document upload
+    file_name = "sample.txt"
+    file_content = b"Este es un documento de prueba sobre inteligencia artificial y machine learning."
 
-    # Simulación de la subida de un documento
-    mock_file = MagicMock(spec=UploadFile)
-    mock_file.filename = "test_document.txt"
-    mock_file.file = MagicMock()  # Crear un mock para el atributo 'file'
-    mock_file.file.read.return_value = b"Este es un documento de prueba"
+    # Simulate file upload
+    with open(file_name, "wb") as f:
+        f.write(file_content)
 
-    # Simular FileReader para leer el contenido del documento
-    FileReader.read_file = MagicMock(return_value="Este es el contenido del documento de prueba.")
+    with open(file_name, "rb") as file_to_upload:
+        upload_response = client.post(
+            "/save-document",
+            files={"file": (file_name, file_to_upload, "text/plain")}
+        )
 
-    # Simular la subida del documento
-    result = rag_service.save_document(mock_file)
-    assert result == {"status": "Document saved successfully"}
+    assert upload_response.status_code == 201
+    assert upload_response.json()["status"] == "Document saved successfully"
 
-    # Asegurarse que los repositorios interactúan correctamente
-    mongo_repo.save_document.assert_called_once()
-    document_repo.save_document.assert_called_once()
+    # Get the ID of the saved document (assuming it's returned in the response)
+    document_id = upload_response.json().get("document_id")
 
-    # Simular la generación de respuesta de OpenAI
-    query = "¿Qué dice el documento?"
-    document_repo.get_documents.return_value = [
-        Document(title="test_document.txt", content="Este es el contenido del documento de prueba.")]
-    openai_adapter.generate_text.return_value = "Este es el contenido del documento."
+    # 2. Simulate sending a question
+    query = "¿Qué dice exactamente el documento el documento?"
 
-    # Hacer la pregunta al RAGService
-    response = rag_service.generate_answer(query)
+    question_response = client.get(
+        "/generate-answer",
+        params={"query": query}
+    )
 
-    # Verificar que OpenAI fue llamado correctamente y que la respuesta es la esperada
-    document_repo.get_documents.assert_called_once_with(query, openai_adapter)
-    openai_adapter.generate_text.assert_called_once_with(prompt=query,
-                                                         retrieval_context="Este es el contenido del documento de prueba.")
-
-    assert response == "Este es el contenido del documento."
+    assert question_response.status_code == 201
+    response_text = question_response.json()
+    assert response_text
+    assert "inteligencia artificial y machine learning" in response_text
+    print(response_text)
 
 
 # Prueba unitaria para generar una respuesta
@@ -104,6 +116,7 @@ def test_save_document(rag_service, mock_repositories, tmpdir):
     mongo_repo.save_document.assert_called_once()
     document_repo.save_document.assert_called_once()
 
+
 def test_save_document_file_not_found(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
@@ -125,6 +138,7 @@ def test_save_document_file_not_found(rag_service, mock_repositories):
     mongo_repo.save_document.assert_not_called()
     document_repo.save_document.assert_not_called()
 
+
 def test_save_document_value_error(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
@@ -145,6 +159,7 @@ def test_save_document_value_error(rag_service, mock_repositories):
     assert result == {"status": "Unsupported file format"}
     mongo_repo.save_document.assert_not_called()
     document_repo.save_document.assert_not_called()
+
 
 def test_save_document_generic_exception(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories
@@ -187,6 +202,7 @@ def test_get_user_success(rag_service, mock_repositories):
     assert result["username"] == "test_user"
     mongo_repo.get_user.assert_called_once_with(email, password)
 
+
 def test_get_user_not_found(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
@@ -201,6 +217,7 @@ def test_get_user_not_found(rag_service, mock_repositories):
     # Comprobar que el resultado es None cuando no se encuentra el usuario
     assert result is None
     mongo_repo.get_user.assert_called_once_with(email, password)
+
 
 def test_get_user_exception(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories
@@ -231,6 +248,7 @@ def test_save_user(rag_service, mock_repositories):
 
     assert result["status"] == "success"
     mongo_repo.save_user.assert_called_once_with(user)
+
 
 def test_save_user_exception(rag_service, mock_repositories):
     document_repo, mongo_repo, openai_adapter = mock_repositories

@@ -2,8 +2,8 @@ from server.core.models import Document, User
 from server.core import ports
 from server.helpers.strategies import FileReader
 import os
-from fastapi import UploadFile
-from server.middlewares.jwt import create_access_token
+from fastapi import UploadFile, Request
+from server.middlewares.jwt import create_access_token, validate_token
 from datetime import timedelta
 import bcrypt
 
@@ -82,6 +82,9 @@ class RAGService:
         except Exception as e:
             print(f"Error in get_user: {e}")  # Imprimir el error en la consola
             return None
+
+    def is_logged_in(self, request: Request) -> bool:
+        return self.mongo_repo.is_logged_in(request)
 
     def get_document(self, id: str) -> Document:
         return self.mongo_repo.get_document(id)

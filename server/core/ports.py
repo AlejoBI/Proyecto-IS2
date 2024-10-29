@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from server.core import models
+from fastapi import Request
 
 class DocumentRepositoryPort(ABC):
     @abstractmethod
@@ -33,6 +34,9 @@ class MongoDBRepositoryPort(ABC):
     def get_document(self, document_id: str) -> models.Document | None:
         pass
 
+    @abstractmethod
+    def is_logged_in(self, request: Request) -> bool:
+        pass
 
 class LlmPort(ABC):
     @abstractmethod

@@ -3,8 +3,9 @@ from server.core import ports
 from server.core import models
 import pymongo as pm
 import bcrypt
-from server.middlewares.jwt import create_access_token
+from server.middlewares.jwt import create_access_token, validate_token
 from datetime import timedelta
+from fastapi import Request
 
 class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def __init__(self, uri: str, database: str, users_collection: str, documents_collection: str) -> None:
@@ -41,6 +42,15 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
                     "email": user["email"]
                 }
         return None
+
+    def is_logged_in(self, request: Request) -> bool:
+        token = request.cookies.get("access_token")
+        if not token:
+            return False  # Sin token, el usuario no está autenticado
+
+        # Intenta validar el token
+        return validate_token(token)
+
 
     # Document methods --------------------------------
     def save_document(self, document: models.Document) -> None:

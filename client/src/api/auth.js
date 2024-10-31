@@ -13,8 +13,12 @@ export const loginRequest = async (user) => {
 export const logoutRequest = () => axios.post(`/logout`);
 
 export const checkAuthRequest = async () => {
-    const res = await axios.get(`/check-auth`);
-    return res.data;
+    try {
+        const res = await axios.get(`/check-auth`);
+        return res.status === 200; // Devuelve true si la respuesta es 200
+    } catch (error) {
+        return false; // Devuelve false si hay un error
+    }
 };
 
 // Subida de documentos

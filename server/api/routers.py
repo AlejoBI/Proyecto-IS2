@@ -73,6 +73,9 @@ def check_auth(request: Request, rag_service: usecases.RAGService = Depends(depe
     return {"status": "Authenticated"}
 
 @rag_router.post("/logout", status_code=200)
-def logout_user():
+def logout_user(response: Response):
+    # Eliminar la cookie del token
+    response.delete_cookie(key="access_token")
     return {"status": "User logged out successfully"}
+
 

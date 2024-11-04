@@ -1,28 +1,35 @@
-import {useState} from "react";
-import {uploadDocumentRequest, generateAnswerRequest} from "../api/auth";  // Ambas funciones de API
-import {Form, Button} from "react-bootstrap";
+import { useState } from "react";
+import { uploadDocumentRequest, generateAnswerRequest } from "../api/auth";
+import { Form, Button } from "react-bootstrap";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from 'react-router-dom';
 
 const QuestionForm = () => {
     const [file, setFile] = useState(null);
     const [question, setQuestion] = useState("");
     const [status, setStatus] = useState("");
     const [responses, setResponses] = useState([]);
-    const [loading, setLoading] = useState(false);  // Controla el estado de carga, usado tanto para la subida como para la pregunta
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Maneja el cambio del archivo
+    const { isAuthenticated } = useAuth();  // Obtiene el estado de autenticación
+    const navigate = useNavigate();
+
     const handleFileChange = (event) => {
         setFile(event.target.files[0]);
     };
 
-    // Maneja la subida del archivo
     const handleFileUpload = async () => {
         if (!file) return;
+        if (!isAuthenticated) {
+            setError("You must be logged in to upload documents.");
+            return;
+        }
 
         const formData = new FormData();
         formData.append("file", file);
 
-        setLoading(true);  // Inicia la carga
+        setLoading(true);
         setStatus("");
         setError(null);
 
@@ -32,44 +39,62 @@ const QuestionForm = () => {
         } catch (error) {
             setStatus("Error uploading document");
         } finally {
-            setLoading(false);  // Termina la carga, habilita de nuevo la capacidad de hacer preguntas
+            setLoading(false);
         }
     };
 
-    // Maneja la generación de respuestas
     const handleAskQuestion = async () => {
-        if (question.trim() === "") return;  // No se permite hacer preguntas vacías
+        if (question.trim() === "") return;
+        if (!isAuthenticated) {
+            setError("You must be logged in to ask questions.");
+            return;
+        }
 
-        setLoading(true);  // Inicia la carga para la pregunta
+        setLoading(true);
         setError(null);
 
         try {
             const res = await generateAnswerRequest(question);
             setResponses([...responses, { question, answer: res }]);
-            setQuestion("");  // Limpia el campo de pregunta
+            setQuestion("");
         } catch (err) {
             setError("Error generating response. Please try again.");
         } finally {
-            setLoading(false);  // Termina la carga
+            setLoading(false);
+        }
+    };
+
+    // Funciones para manejar el clic cuando no está autenticado
+    const handleUploadClick = () => {
+        if (!isAuthenticated) {
+            setError("You must be logged in to upload documents.");
+        } else {
+            handleFileUpload();
+        }
+    };
+
+    const handleAskClick = () => {
+        if (!isAuthenticated) {
+            setError("You must be logged in to ask questions.");
+        } else {
+            handleAskQuestion();
         }
     };
 
     return (
         <div>
-            {/* Formulario para subir archivo */}
             <div className="input-group mb-3">
                 <Form.Control type="file" onChange={handleFileChange} />
                 <Button
                     variant="primary"
-                    onClick={handleFileUpload}
-                    disabled={loading || !file}  // Deshabilita si ya está cargando o no hay archivo seleccionado
+                    onClick={handleUploadClick}
+                    disabled={loading || !file}
                 >
                     {loading ? "Uploading..." : "Upload Document"}
                 </Button>
             </div>
             {status && <p>{status}</p>}
 
-            {/* Mostrar preguntas y respuestas estilo chat */}
             <div className="mt-3 p-3 border rounded bg-light" style={{ height: '400px', overflowY: 'auto' }}>
                 {responses.map((response, index) => (
                     <div key={index} className="mb-3">
@@ -81,7 +106,6 @@ const QuestionForm = () => {
 
             <br/>
 
-            {/* Campo de entrada para la pregunta */}
             <div className="input-group mb-3">
                 <input
                     type="text"
@@ -89,12 +113,12 @@ const QuestionForm = () => {
                     placeholder="Type your question..."
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    disabled={loading}  // Deshabilita mientras se está subiendo un archivo o generando una respuesta
+                    disabled={loading}
                 />
                 <div className="input-group-append">
                     <Button
                         variant="primary"
-                        onClick={handleAskQuestion}
+                        onClick={handleAskClick}
                         disabled={loading || question.trim() === ""}
                     >
                         {loading ? "Processing..." : "Ask"}

@@ -1,5 +1,5 @@
 import pydantic
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Response, Request
 from pydantic import BaseModel
 from server.app import usecases
 from server.api import dependencies
@@ -46,12 +46,36 @@ def register_user(user: UserInput,
     user_service.save_user(user)
     return {"status": "User saved successfully"}
 
+class LoginInput(BaseModel):
+    email: str
+    password: str
+
 @rag_router.post("/login", status_code=200)
-def login_user(email: str, password: str,
+def login_user(user: LoginInput, response: Response,
                user_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    return user_service.get_user(email, password)
+    user_data = user_service.get_user(user.email, user.password)
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Guardar el token en la cookie
+    response.set_cookie(key="access_token", value=user_data["access_token"], httponly=True, max_age=1800)  # Expira en 30 minutos
+
+    return {
+        "status": "Login successful",
+        "username": user_data["username"],
+        "email": user_data["email"]
+    }
+
+@rag_router.get("/checkauth", status_code=200)
+def check_auth(request: Request, rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+    if not rag_service.is_logged_in(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"status": "Authenticated"}
 
 @rag_router.post("/logout", status_code=200)
-def logout_user():
+def logout_user(response: Response):
+    # Eliminar la cookie del token
+    response.delete_cookie(key="access_token")
     return {"status": "User logged out successfully"}
+
 

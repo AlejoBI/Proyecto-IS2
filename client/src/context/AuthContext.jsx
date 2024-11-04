@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
 import {
   registerRequest,
   loginRequest,
   logoutRequest,
   checkAuthRequest
 } from "../api/auth";
+import Cookies from 'js-cookie';
 
 export const AuthContext = createContext();
 
@@ -16,25 +16,30 @@ export const AuthProvider = ({ children }) => {
   const [errors, setErrors] = useState(null);
 
   const signup = async (user) => {
+    setLoading(true);
     try {
       const res = await registerRequest(user);
       setUser(res);
       setIsAuthenticated(true);
-      setLoading(false);
     } catch (error) {
       setErrors(error.response.data);
+    } finally {
       setLoading(false);
     }
   };
 
   const signin = async (user) => {
+    setLoading(true);
     try {
       const res = await loginRequest(user);
       setUser(res);
       setIsAuthenticated(true);
-      setLoading(false);
+      Cookies.set('access_token', res.token, { expires: 1 });
+      return true;
     } catch (error) {
       setErrors(error.response.data);
+      return false;
+    } finally {
       setLoading(false);
     }
   };
@@ -43,37 +48,38 @@ export const AuthProvider = ({ children }) => {
     await logoutRequest();
     setUser(null);
     setIsAuthenticated(false);
-    setLoading(false);
+    Cookies.remove('access_token');
   };
 
   useEffect(() => {
-    const checkLogin = async () => {
-      try {
-        const res = await checkAuthRequest();
-        if (res) {
-          setUser(res);
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
+  const checkLogin = async () => {
+    setLoading(true);
+    try {
+      const authenticated = await checkAuthRequest();
+      if (authenticated) {
+        setIsAuthenticated(true);
+        setUser({});
+      } else {
         setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
+        setUser(null);
       }
-    };
-    checkLogin();
-  }, []);
+    } catch (error) {
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+  checkLogin();
+}, []);
+
 
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated, loading, errors, signup, signin, logout }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, errors, signup, signin, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

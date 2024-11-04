@@ -5,7 +5,7 @@ import {
   logoutRequest,
   checkAuthRequest
 } from "../api/auth";
-import Cookies from 'js-cookie'; // Asegúrate de instalar js-cookie
+import Cookies from 'js-cookie';
 
 export const AuthContext = createContext();
 
@@ -34,8 +34,7 @@ export const AuthProvider = ({ children }) => {
       const res = await loginRequest(user);
       setUser(res);
       setIsAuthenticated(true);
-      // Guardar el token en cookies
-      Cookies.set('access_token', res.token, { expires: 1 }); // Ajusta la expiración según sea necesario
+      Cookies.set('access_token', res.token, { expires: 1 });
       return true;
     } catch (error) {
       setErrors(error.response.data);
@@ -49,34 +48,31 @@ export const AuthProvider = ({ children }) => {
     await logoutRequest();
     setUser(null);
     setIsAuthenticated(false);
-    Cookies.remove('access_token'); // Eliminar el token de las cookies
+    Cookies.remove('access_token');
   };
 
   useEffect(() => {
-    const checkLogin = async () => {
-      setLoading(true);
-      try {
-        // Verificar si el token está en las cookies
-        const token = Cookies.get('access_token');
-        if (token) {
-          const res = await checkAuthRequest();
-          if (res.status === "Authenticated") {
-            setUser(res);
-            setIsAuthenticated(true);
-          } else {
-            setIsAuthenticated(false);
-          }
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
+  const checkLogin = async () => {
+    setLoading(true);
+    try {
+      const authenticated = await checkAuthRequest();
+      if (authenticated) {
+        setIsAuthenticated(true);
+        setUser({});
+      } else {
         setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
+        setUser(null);
       }
-    };
-    checkLogin();
-  }, []);
+    } catch (error) {
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+  checkLogin();
+}, []);
+
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated, loading, errors, signup, signin, logout }}>

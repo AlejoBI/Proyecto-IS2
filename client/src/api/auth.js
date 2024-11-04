@@ -14,10 +14,10 @@ export const logoutRequest = () => axios.post(`/logout`);
 
 export const checkAuthRequest = async () => {
     try {
-        const res = await axios.get(`/check-auth`);
-        return res.status === 200; // Devuelve true si la respuesta es 200
+        const res = await axios.get(`/checkauth`);
+        return res.data.status === "Authenticated"; // Devuelve true si está autenticado
     } catch (error) {
-        return false; // Devuelve false si hay un error
+        return false; // Devuelve false si no está autenticado o si hay un error
     }
 };
 

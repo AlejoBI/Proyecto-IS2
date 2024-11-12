@@ -47,11 +47,7 @@ class MongoDBRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def update_user_state(self, email: str, new_state: bool) -> Optional[dict]:
-        pass
-
-    @abstractmethod
-    def update_user(self, email: str, user: models.User) -> dict | None:
+    def update_user(self, user: models.User) -> dict | None:
         pass
 
     @abstractmethod
@@ -59,7 +55,7 @@ class MongoDBRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def get_documents(self, query: str, n_results: int | None = None) -> List[models.Document]:
+    def get_documents(self, n_results: int | None = None) -> List[models.Document]:
         pass
 
     @abstractmethod

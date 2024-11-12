@@ -107,10 +107,11 @@ def get_user_by_id(user_id: str,
 
 @rag_router.get("/admin/get-users", status_code=200)
 def admin_get_users(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    users = rag_service.get_all_users()  # Método que obtiene todos los usuarios desde la base de datos.
-    if users:
-        return users
-    raise HTTPException(status_code=404, detail="No users found")
+    users = rag_service.get_all_users()
+    # Convertir ObjectId a string
+    for user in users:
+        user["_id"] = str(user["_id"])
+    return users
 
 
 @rag_router.post("/admin/save-user", status_code=201)
@@ -122,40 +123,30 @@ def admin_save_user(user: UserInput,
     raise HTTPException(status_code=400, detail="Error saving user")
 
 
-@rag_router.post("/admin/disable-user", status_code=200)
-def admin_disable_user(email: str,
-                       rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    result = rag_service.disable_user(email)
-    if result and result["status"] == "User disabled successfully":
-        return {"status": "User disabled successfully"}
-    raise HTTPException(status_code=404, detail="User not found")
-
-
 @rag_router.put("/admin/update-user", status_code=200)
-def admin_update_user(user_id: str, updated_data: UserInput,
+def admin_update_user(updated_data: UserInput,
                       rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    updated_user = rag_service.update_user(user_id, updated_data)
+    updated_user = rag_service.update_user(updated_data)
     if updated_user:
         return {"status": "User updated successfully", "user": updated_user}
     raise HTTPException(status_code=404, detail="User not found")
 
 
 @rag_router.delete("/admin/delete-user", status_code=200)
-def admin_delete_user(email: str,
-                      rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+def admin_delete_user(
+        email: str,
+        rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)
+):
     result = rag_service.delete_user(email)
     if result["status"] == "User deleted":
         return {"status": "User deleted successfully"}
     raise HTTPException(status_code=404, detail="User not found")
 
 
-@rag_router.post("/admin/get_documents", status_code=200)
-def admin_get_documents(query: str, n_results: int = None,
-                        rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    documents = rag_service.get_documents(query, n_results)
-    if documents:
-        return documents
-    raise HTTPException(status_code=404, detail="No documents found")
+@rag_router.get("/admin/get-documents", status_code=200)
+def admin_get_documents(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+    documents = rag_service.get_documents()
+    return documents
 
 
 @rag_router.delete("/admin/delete-document", status_code=200)

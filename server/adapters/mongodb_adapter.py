@@ -4,8 +4,8 @@ from server.core import models
 import pymongo as pm
 import bcrypt
 from server.middlewares.jwt import create_access_token, validate_token
-from datetime import timedelta
 from fastapi import Request
+
 
 class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def __init__(self, uri: str, database: str, users_collection: str, documents_collection: str) -> None:
@@ -70,20 +70,18 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def get_all_users(self) -> List[models.User]:
         return list(self.db.users.find())
 
-    def update_user_state(self, email: str, new_state: bool) -> Optional[dict]:
-        """Actualizar el estado de un usuario en la base de datos."""
-        result = self.db.users.update_one({"email": email}, {"$set": {"state": new_state}})
-        if result.matched_count > 0:
-            return {"email": email, "state": new_state}
-        return None
-
-    def update_user(self, email: str, user: models.User) -> dict | None:
-        """Actualizar un usuario por email."""
-        user_dict = user.dict()
-        result = self.users.update_one({"email": email}, {"$set": user_dict})
-        if result.modified_count > 0:
-            return {"status": "User updated"}
-        return {"status": "User not found"}
+    def update_user(self, updated_data: models.User) -> dict | None:
+        """Llamar al repositorio para actualizar un usuario."""
+        user_dict = updated_data.dict()
+        try:
+            result = self.db.users.update_one({"email": user_dict.get("email")}, {"$set": user_dict})
+            if result.matched_count > 0:
+                return {"status": "User updated successfully", "matched_count": result.matched_count}
+            else:
+                return {"status": "User not found"}
+        except Exception as e:
+            print(f"Error in update_user: {e}")
+            return {"status": "Error updating user"}
 
     def delete_user(self, email: str) -> dict | None:
         """Eliminar un usuario por email."""
@@ -92,14 +90,14 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             return {"status": "User deleted"}
         return {"status": "User not found"}
 
-
     # Document methods --------------------------------
-    def get_documents(self, query: str, n_results: int | None = None) -> List[models.Document]:
-        documents = self.documents.find({"$text": {"$search": query}})
+    def get_documents(self, n_results: int | None = None) -> List[models.Document]:
         if n_results:
-            documents = documents.limit(n_results)
-        return [models.Document(id=document["id"], title=document["title"],
-                                path=document["path"], content=document["content"]) for document in documents]
+            documents = self.db.documents.find().limit(n_results)
+        else:
+            documents = self.db.documents.find()
+        return [models.Document(id=document["id"], title=document["title"], path=document["path"],
+                                content=document["content"]) for document in documents]
 
     def save_document(self, document: models.Document) -> None:
         self.documents.insert_one(
@@ -113,7 +111,6 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         return None
 
     def delete_document(self, document_id: str) -> dict | None:
-        """Eliminar un documento por ID."""
         result = self.documents.delete_one({"id": document_id})
         if result.deleted_count > 0:
             return {"status": "Document deleted"}

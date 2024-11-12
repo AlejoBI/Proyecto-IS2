@@ -44,7 +44,7 @@ class RAGService:
             content = FileReader(document.path).read_file()
             if isinstance(content, str) and content.startswith("File not found") or content.startswith(
                     "An error occurred"):
-                return {"status": content}  # Devolver mensaje de error específico
+                return {"status": content}
 
             self.mongo_repo.save_document(document)
             self.document_repo.save_document(document, content, self.openai_adapter)
@@ -54,7 +54,7 @@ class RAGService:
         except ValueError as ve:
             return {"status": str(ve)}  # Si el archivo no es soportado, devolver mensaje claro
         except Exception as e:
-            return {"status": str(e)}  # Otros errores
+            return {"status": str(e)}
 
     def save_user(self, user: User) -> dict | None:
         try:
@@ -69,24 +69,23 @@ class RAGService:
         try:
             user = self.mongo_repo.get_user(email, password)
             if user:
-                # Crear el token de acceso (expira en 30 minutos)
                 token_data = {
-                    "sub": user["email"],  # Cambiar a user["email"]
-                    "username": user["username"]  # Cambiar a user["username"]
+                    "sub": user["email"],
+                    "username": user["username"]
                 }
                 access_token = create_access_token(token_data, expires_delta=timedelta(minutes=30))
 
                 return {
                     "access_token": access_token,
                     "token_type": "bearer",
-                    "username": user["username"],  # Cambiar a user["username"]
-                    "email": user["email"],  # Cambiar a user["email"]
+                    "username": user["username"],
+                    "email": user["email"],
                     "role": user.get("role", ""),
                     "isActive": user.get("isActive", "")
                 }
             return None
         except Exception as e:
-            print(f"Error in get_user: {e}")  # Imprimir el error en la consola
+            print(f"Error in get_user: {e}")
             return None
 
     def is_logged_in(self, request: Request) -> bool:
@@ -98,23 +97,12 @@ class RAGService:
     def get_all_users(self) -> List[User]:
         return self.mongo_repo.get_all_users()
 
-    def disable_user(self, email: str, disable: bool = True) -> dict | None:
-        """Deshabilitar o habilitar un usuario por su email."""
+    def update_user(self, user: User) -> dict | None:
+        """Actualizar un usuario por email."""
+        user_dict = user.dict()  # Convertir el usuario a diccionario
         try:
-            # Si disable es True, desactivar el usuario (False); si es False, activar (True)
-            new_state = False if disable else True
-            user_update = self.mongo_repo.update_user_state(email, new_state)
-            if user_update:
-                return {"status": "User disabled successfully" if disable else "User enabled successfully"}
-            return {"status": "User not found"}
-        except Exception as e:
-            print(f"Error in disable_user: {e}")
-            return None
-
-    def update_user(self, email: str, user: User) -> dict | None:
-        """Actualizar un usuario por su email."""
-        try:
-            return self.mongo_repo.update_user(email, user)
+            result = self.mongo_repo.users.update_one({"email": user_dict.get("email")}, {"$set": user_dict})
+            return result
         except Exception as e:
             print(f"Error in update_user: {e}")
             return None
@@ -127,8 +115,8 @@ class RAGService:
             print(f"Error in delete_user: {e}")
             return None
 
-    def get_documents(self, query: str, n_results: int | None = None) -> List[Document]:
-        return self.mongo_repo.get_documents(query, n_results)
+    def get_documents(self, n_results: int | None = None) -> List[Document]:
+        return self.mongo_repo.get_documents(n_results)
 
     def get_document(self, id: str) -> Document:
         return self.mongo_repo.get_document(id)
@@ -137,7 +125,6 @@ class RAGService:
         return self.document_repo.get_vectors()
 
     def delete_document(self, document_id: str) -> dict | None:
-        """Eliminar un documento por su ID."""
         try:
             return self.mongo_repo.delete_document(document_id)
         except Exception as e:

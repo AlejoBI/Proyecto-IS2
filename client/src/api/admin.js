@@ -19,14 +19,16 @@ export const disableUserRequest = async (email, disable = true) => {
 };
 
 // Editar usuario
-export const updateUserRequest = async (email, updatedData) => {
-    const res = await axios.put(`/admin/update-user`, { email, updatedData });
+export const updateUserRequest = async (updatedData) => {
+    const res = await axios.put(`/admin/update-user`, updatedData);
     return res.data;
 };
 
 // Eliminar usuario
 export const deleteUserRequest = async (email) => {
-    const res = await axios.delete(`/admin/delete-user`, { data: { email } });
+    const res = await axios.delete(`/admin/delete-user`, {
+        params: { email }
+    });
     return res.data;
 };
 
@@ -37,7 +39,9 @@ export const getDocumentsRequest = async () => {
 };
 
 // Eliminar documento
-export const deleteDocumentRequest = async (documentId) => {
-    const res = await axios.delete(`/admin/delete-document`, { data: { document_id: documentId } });
+export const deleteDocumentRequest = async (document_id) => {
+    const res = await axios.delete(`/admin/delete-document`, {
+        params: { document_id }
+    });
     return res.data;
 };

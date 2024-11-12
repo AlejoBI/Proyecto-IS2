@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { uploadDocumentRequest, generateAnswerRequest } from "../api/auth";
 import { Form, Button } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
@@ -12,8 +12,7 @@ const QuestionForm = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const { isAuthenticated } = useAuth();  // Obtiene el estado de autenticación
-    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth(); 
 
     const handleFileChange = (event) => {
         setFile(event.target.files[0]);
@@ -80,6 +79,14 @@ const QuestionForm = () => {
             handleAskQuestion();
         }
     };
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setResponses([]);
+            setQuestion("");
+            setError(null);
+        }
+    }, [isAuthenticated]);
 
     return (
         <div>

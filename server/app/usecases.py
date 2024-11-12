@@ -1,3 +1,5 @@
+from typing import List
+
 from server.core.models import Document, User
 from server.core import ports
 from server.helpers.strategies import FileReader
@@ -7,8 +9,10 @@ from server.middlewares.jwt import create_access_token, validate_token
 from datetime import timedelta
 import bcrypt
 
+
 class RAGService:
-    def __init__(self, document_repo: ports.DocumentRepositoryPort, mongo_repo: ports.MongoDBRepositoryPort, openai_adapter: ports.LlmPort):
+    def __init__(self, document_repo: ports.DocumentRepositoryPort, mongo_repo: ports.MongoDBRepositoryPort,
+                 openai_adapter: ports.LlmPort):
         self.document_repo = document_repo
         self.mongo_repo = mongo_repo
         self.openai_adapter = openai_adapter
@@ -76,7 +80,9 @@ class RAGService:
                     "access_token": access_token,
                     "token_type": "bearer",
                     "username": user["username"],  # Cambiar a user["username"]
-                    "email": user["email"]  # Cambiar a user["email"]
+                    "email": user["email"],  # Cambiar a user["email"]
+                    "role": user.get("role", ""),
+                    "isActive": user.get("isActive", "")
                 }
             return None
         except Exception as e:
@@ -86,8 +92,54 @@ class RAGService:
     def is_logged_in(self, request: Request) -> bool:
         return self.mongo_repo.is_logged_in(request)
 
+    def get_user_by_id(self, user_id: str) -> User | None:
+        return self.mongo_repo.get_user_by_id(user_id)
+
+    def get_all_users(self) -> List[User]:
+        return self.mongo_repo.get_all_users()
+
+    def disable_user(self, email: str, disable: bool = True) -> dict | None:
+        """Deshabilitar o habilitar un usuario por su email."""
+        try:
+            # Si disable es True, desactivar el usuario (False); si es False, activar (True)
+            new_state = False if disable else True
+            user_update = self.mongo_repo.update_user_state(email, new_state)
+            if user_update:
+                return {"status": "User disabled successfully" if disable else "User enabled successfully"}
+            return {"status": "User not found"}
+        except Exception as e:
+            print(f"Error in disable_user: {e}")
+            return None
+
+    def update_user(self, email: str, user: User) -> dict | None:
+        """Actualizar un usuario por su email."""
+        try:
+            return self.mongo_repo.update_user(email, user)
+        except Exception as e:
+            print(f"Error in update_user: {e}")
+            return None
+
+    def delete_user(self, email: str) -> dict | None:
+        """Eliminar un usuario por su email."""
+        try:
+            return self.mongo_repo.delete_user(email)
+        except Exception as e:
+            print(f"Error in delete_user: {e}")
+            return None
+
+    def get_documents(self, query: str, n_results: int | None = None) -> List[Document]:
+        return self.mongo_repo.get_documents(query, n_results)
+
     def get_document(self, id: str) -> Document:
         return self.mongo_repo.get_document(id)
 
     def get_vectors(self):
         return self.document_repo.get_vectors()
+
+    def delete_document(self, document_id: str) -> dict | None:
+        """Eliminar un documento por su ID."""
+        try:
+            return self.mongo_repo.delete_document(document_id)
+        except Exception as e:
+            print(f"Error in delete_document: {e}")
+            return None

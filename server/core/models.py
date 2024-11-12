@@ -18,3 +18,4 @@ class User(pydantic.BaseModel):
     email: EmailStr
     password: constr(min_length=8)
     role: str
+    isActive: bool = True

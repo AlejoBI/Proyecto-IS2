@@ -9,7 +9,10 @@ app = FastAPI()
 # Configuración CORS
 origins = [
     configs.APP_HOST,
-    configs.REACT_VITE_CONNECTION
+    configs.REACT_VITE_CONNECTION,
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080"
 ]
 
 app.add_middleware(
@@ -23,4 +26,5 @@ app.include_router(rag_router)
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("server.main:app", host=configs.APP_HOST, port=configs.APP_PORT, reload=True)

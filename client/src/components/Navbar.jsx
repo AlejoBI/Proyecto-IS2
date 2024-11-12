@@ -1,11 +1,18 @@
-import { Container, Nav, Navbar, Button, Image, NavDropdown } from "react-bootstrap";
-import "../assests/css/Navbar.css"; 
+import {
+  Container,
+  Nav,
+  Navbar,
+  Button,
+  Image,
+  Dropdown,
+} from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../assests/images/Logo.jpg";
+import "../assests/css/Navbar.css";
 
 const NavbarComponent = () => {
   const { isAuthenticated, logout, user } = useAuth();
-  const title = user ? `${user.username}` : "Home";
+  const tittle = user ? `${user.username}` : "Home";
 
   return (
     <Navbar
@@ -36,36 +43,40 @@ const NavbarComponent = () => {
               width: "100%",
               paddingLeft: "28%",
             }}
-          >
-          </div>
+          ></div>
           <Nav style={{ justifyContent: "flex-end" }}>
             {isAuthenticated ? (
-              <NavDropdown title={title} id="navbarScrollingDropdown">
-                <NavDropdown.Item href="/user/profile">
-                  Profile
-                </NavDropdown.Item>
-                <NavDropdown.Item
-                  href="/"
-                  onClick={() => {
-                    logout();
-                  }}
-                >
-                  Logout
-                </NavDropdown.Item>
-              </NavDropdown>
+              <Dropdown>
+                <Dropdown.Toggle variant="primary" id="dropdown-basic">
+                  {tittle}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                  {user && user.role === "user" && (
+                    <>
+                      <Dropdown.Item href="/user/profile">
+                        Profile
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                    </>
+                  )}
+                  <Dropdown.Item onClick={logout}>Logout</Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
             ) : (
               <>
-              <Button
-                href="/login"
-                style={{
-                  backgroundColor: "#187A6B",
-                  borderColor: "#187A6B",
-                  marginRight: "10px",
-                  fontWeight: "bold"                }}
-              >
-                Login
-              </Button>
-            </>
+                <Button
+                  href="/login"
+                  style={{
+                    backgroundColor: "#187A6B",
+                    borderColor: "#187A6B",
+                    marginRight: "10px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Login
+                </Button>
+              </>
             )}
           </Nav>
         </Navbar.Collapse>

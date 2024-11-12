@@ -1,24 +1,22 @@
 import { useAuth } from "../context/AuthContext";
 import { Form, Button, Container } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 const FormRegister = () => {
-  const { singup } = useAuth();
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     const username = e.target.username.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
     const confirmPassword = e.target.confirmPassword.value;
     const role = "user";
 
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-
-    const data = { username, email, password, role };
-    singup(data);
+    signup({ username, email, password, confirmPassword, role });
+    navigate("/");
   };
 
   return (

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 from server.core import models
 from fastapi import Request
 
@@ -36,6 +36,34 @@ class MongoDBRepositoryPort(ABC):
 
     @abstractmethod
     def is_logged_in(self, request: Request) -> bool:
+        pass
+
+    @abstractmethod
+    def get_user_by_id(self, user_id: str) -> models.User | None:
+        pass
+
+    @abstractmethod
+    def get_all_users(self) -> List[models.User]:
+        pass
+
+    @abstractmethod
+    def update_user_state(self, email: str, new_state: bool) -> Optional[dict]:
+        pass
+
+    @abstractmethod
+    def update_user(self, email: str, user: models.User) -> dict | None:
+        pass
+
+    @abstractmethod
+    def delete_user(self, email: str) -> dict | None:
+        pass
+
+    @abstractmethod
+    def get_documents(self, query: str, n_results: int | None = None) -> List[models.Document]:
+        pass
+
+    @abstractmethod
+    def delete_document(self, document_id: str) -> dict | None:
         pass
 
 class LlmPort(ABC):

@@ -1,23 +1,23 @@
-import { useAuth } from "../context/AuthContext"; // Importa tu contexto de autenticación
-import { Form, Button, Container } from "react-bootstrap"; // Importa componentes de react-bootstrap
-import { useNavigate } from 'react-router-dom'; // Importa useNavigate
+import { useAuth } from "../context/AuthContext"; 
+import { Form, Button, Container } from "react-bootstrap";
+import { useNavigate } from 'react-router-dom'; 
 
 const FormLogin = () => {
-    const { signin, errors } = useAuth(); // Desestructura la función signin y los errores del contexto
-    const navigate = useNavigate(); // Inicializa useNavigate
+    const { signin } = useAuth(); 
+    const navigate = useNavigate(); 
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Previene el comportamiento por defecto del formulario
-        const email = e.target.email.value; // Obtiene el email
-        const password = e.target.password.value; // Obtiene la contraseña
+        e.preventDefault(); 
+        const email = e.target.email.value; 
+        const password = e.target.password.value; 
 
-        const data = { email, password }; // Crea un objeto con los datos del formulario
-        const success = await signin(data); // Espera el resultado del signin
+        const data = { email, password }; 
+        const success = await signin(data);
 
         if (success) {
-            navigate('/'); // Redirige a la HomePage en caso de éxito
+            navigate('/'); 
         } else {
-            console.error("Error en la autenticación"); // Maneja el error (puedes mostrar un mensaje al usuario)
+            console.error("Error en la autenticación"); 
         }
     };
 
@@ -43,8 +43,6 @@ const FormLogin = () => {
                         required
                     />
                 </Form.Group>
-
-                {errors && <div className="alert alert-danger">{errors}</div>} {/* Muestra errores si hay */}
 
                 <Button
                     variant="primary"

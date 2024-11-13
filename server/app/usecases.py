@@ -5,9 +5,8 @@ from server.core import ports
 from server.helpers.strategies import FileReader
 import os
 from fastapi import UploadFile, Request
-from server.middlewares.jwt import create_access_token, validate_token
+from server.middlewares.jwt import create_access_token
 from datetime import timedelta
-import bcrypt
 
 
 class RAGService:
@@ -78,10 +77,12 @@ class RAGService:
                 return {
                     "access_token": access_token,
                     "token_type": "bearer",
+                    "_id": str(user.get("_id", "")),
                     "username": user["username"],
                     "email": user["email"],
                     "role": user.get("role", ""),
-                    "isActive": user.get("isActive", "")
+                    "isActive": user.get("isActive", ""),
+                    "password": user.get("password", "")
                 }
             return None
         except Exception as e:
@@ -91,15 +92,12 @@ class RAGService:
     def is_logged_in(self, request: Request) -> bool:
         return self.mongo_repo.is_logged_in(request)
 
-    def get_user_by_id(self, user_id: str) -> User | None:
-        return self.mongo_repo.get_user_by_id(user_id)
-
     def get_all_users(self) -> List[User]:
         return self.mongo_repo.get_all_users()
 
     def update_user(self, user: User) -> dict | None:
         """Actualizar un usuario por email."""
-        user_dict = user.dict()  # Convertir el usuario a diccionario
+        user_dict = user.dict()
         try:
             result = self.mongo_repo.users.update_one({"email": user_dict.get("email")}, {"$set": user_dict})
             return result

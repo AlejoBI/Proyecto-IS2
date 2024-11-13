@@ -19,8 +19,8 @@ export const disableUserRequest = async (email, disable = true) => {
 };
 
 // Editar usuario
-export const updateUserRequest = async (updatedData) => {
-    const res = await axios.put(`/admin/update-user`, updatedData);
+export const updateUserRequest = async (updated_data) => {
+    const res = await axios.put(`/admin/update-user`, updated_data);
     return res.data;
 };
 

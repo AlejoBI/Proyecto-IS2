@@ -8,9 +8,12 @@ import {
   deleteDocumentRequest,
 } from "../api/admin";
 
+import { useAuth } from "./AuthContext";
+
 export const AdminContext = createContext();
 
 export const AdminProvider = ({ children }) => {
+  const { user, setUser, logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,10 @@ export const AdminProvider = ({ children }) => {
           user.email === updatedData.email ? updatedData : user
         )
       );
+      if (user.email === updatedData.email && user.role !== "admin") {
+        setUser(updatedData);
+        sessionStorage.setItem("user", JSON.stringify(updatedData));
+      }
     } catch (error) {
       setErrors(error.response ? error.response.data : error.message);
     } finally {
@@ -73,6 +80,9 @@ export const AdminProvider = ({ children }) => {
     try {
       await deleteUserRequest(userEmail);
       setUsers((prev) => prev.filter((user) => user.email !== userEmail));
+      if (user.role !== "admin") {
+        logout();
+      }
     } catch (error) {
       setErrors(error.response ? error.response.data : error.message);
     } finally {

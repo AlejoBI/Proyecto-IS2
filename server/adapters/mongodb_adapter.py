@@ -1,9 +1,9 @@
-from typing import List, Optional
+from typing import List
 from server.core import ports
 from server.core import models
 import pymongo as pm
 import bcrypt
-from server.middlewares.jwt import create_access_token, validate_token
+from server.middlewares.jwt import validate_token
 from fastapi import Request
 
 
@@ -45,10 +45,12 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             hashed_bytes = user["password"].encode()
             if bcrypt.checkpw(password_bytes, hashed_bytes):
                 return {
+                    "_id": str(user["_id"]),
                     "username": user["username"],
                     "email": user["email"],
                     "role": user["role"],
-                    "isActive": user["isActive"]
+                    "isActive": user["isActive"],
+                    "password": user["password"]
                 }
         return None
 
@@ -59,13 +61,6 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
 
         # Intenta validar el token
         return validate_token(token)
-
-    def get_user_by_id(self, user_id: str) -> models.User | None:
-        user = self.users.find_one({"id": user_id})
-        if user:
-            return models.User(id=user["id"], username=user["username"], email=user["email"],
-                               password=user["password"], role=user["role"], state=user["state"])
-        return None
 
     def get_all_users(self) -> List[models.User]:
         return list(self.db.users.find())

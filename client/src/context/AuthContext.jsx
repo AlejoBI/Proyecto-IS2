@@ -56,7 +56,17 @@ export const AuthProvider = ({ children }) => {
       Cookies.set("access_token", res.token, { expires: 1 });
       return true;
     } catch (error) {
-      setErrors(error.message);
+      if (error.message === "Request failed with status code 401") {
+        setErrors("Invalid email or password");
+      } else if (error.message === "Request failed with status code 403") {
+        setErrors("User is not active");
+      } else if (error.message === "Request failed with status code 404") {
+        setErrors("User not found");
+      } else if (error.message === "Request failed with status code 500") {
+        setErrors("Server error, try again later");
+      } else {
+        setErrors(error.message);
+      }
       return false;
     } finally {
       setLoading(false);
@@ -100,6 +110,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isAuthenticated,
         loading,
         errors,

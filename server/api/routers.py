@@ -73,11 +73,12 @@ def login_user(user: LoginInput, response: Response,
                             max_age=1800)  # Expira en 30 minutos
 
     return {
-        "status": "Login successful",
+        "_id": user_data.get("_id", ""),
         "username": user_data.get("username", ""),
         "email": user_data.get("email", ""),
         "role": user_data.get("role", ""),
-        "isActive": user_data.get("isActive", "")
+        "isActive": user_data.get("isActive", ""),
+        "password": user_data.get("password", "")
     }
 
 
@@ -94,15 +95,6 @@ def logout_user(response: Response):
     # Eliminar la cookie del token
     response.delete_cookie(key="access_token")
     return {"status": "User logged out successfully"}
-
-
-@rag_router.get("/get-userbyid", status_code=200)
-def get_user_by_id(user_id: str,
-                   rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    user = rag_service.get_user_by_id(user_id)
-    if user:
-        return user
-    raise HTTPException(status_code=404, detail="User not found")
 
 
 @rag_router.get("/admin/get-users", status_code=200)
@@ -126,10 +118,13 @@ def admin_save_user(user: UserInput,
 @rag_router.put("/admin/update-user", status_code=200)
 def admin_update_user(updated_data: UserInput,
                       rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
-    updated_user = rag_service.update_user(updated_data)
-    if updated_user:
-        return {"status": "User updated successfully", "user": updated_user}
-    raise HTTPException(status_code=404, detail="User not found")
+    UpdateResult = rag_service.update_user(updated_data)
+    if UpdateResult.modified_count > 0:
+        return {"status": "User updated successfully"}
+    elif UpdateResult.matched_count == 0:
+        return {"status": "User not found"}
+    else:
+        return {"status": "No changes made to the user"}
 
 
 @rag_router.delete("/admin/delete-user", status_code=200)

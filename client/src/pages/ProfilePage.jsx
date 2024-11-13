@@ -1,9 +1,8 @@
-function ProfilePage() {
-    return (
-      <div>
-        <h1>Profile Page</h1>
-      </div>
-    )
-  }
-  
-  export default ProfilePage;
+import React from "react";
+import CardProfile from "../components/profile/CardProfile";
+
+const ProfilePage = () => {
+  return <CardProfile />;
+};
+
+export default ProfilePage;

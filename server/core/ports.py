@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List
 from server.core import models
 from fastapi import Request
 
@@ -36,10 +36,6 @@ class MongoDBRepositoryPort(ABC):
 
     @abstractmethod
     def is_logged_in(self, request: Request) -> bool:
-        pass
-
-    @abstractmethod
-    def get_user_by_id(self, user_id: str) -> models.User | None:
         pass
 
     @abstractmethod

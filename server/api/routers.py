@@ -67,6 +67,9 @@ def login_user(user: LoginInput, response: Response,
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    if user_data.get("status") == "User is not active":
+        raise HTTPException(status_code=403, detail="User is not active")
+
     # Guardar el token en la cookie
     if "access_token" in user_data:
         response.set_cookie(key="access_token", value=user_data["access_token"], httponly=True,

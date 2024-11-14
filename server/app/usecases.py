@@ -68,6 +68,9 @@ class RAGService:
         try:
             user = self.mongo_repo.get_user(email, password)
             if user:
+                if not user.get("isActive", False):
+                    return {"status": "User is not active"}
+
                 token_data = {
                     "sub": user["email"],
                     "username": user["username"]
@@ -81,8 +84,8 @@ class RAGService:
                     "username": user["username"],
                     "email": user["email"],
                     "role": user.get("role", ""),
-                    "isActive": user.get("isActive", ""),
-                    "password": user.get("password", "")
+                    "isActive": user["isActive"],
+                    "password": user["password"]
                 }
             return None
         except Exception as e:

@@ -191,15 +191,23 @@ def test_get_user_success(rag_service, mock_repositories):
     password = "password"
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     mongo_repo.get_user.return_value = {
+        "_id": "123",
         "email": email,
         "username": "test_user",
-        "password": hashed_password
+        "password": hashed_password,
+        "isActive": True,
+        "role": "user"
     }
 
     result = rag_service.get_user(email, password)
 
+    assert result is not None, "Expected result to not be None"
     assert result["email"] == email
     assert result["username"] == "test_user"
+    assert result["role"] == "user"
+    assert result["isActive"] is True
+    assert "access_token" in result
+    assert result["token_type"] == "bearer"
     mongo_repo.get_user.assert_called_once_with(email, password)
 
 

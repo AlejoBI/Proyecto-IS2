@@ -1,10 +1,9 @@
 import openai
-
 from server.core import ports
 
 
 class OpenAIAdapter(ports.LlmPort):
-    def __init__(self, api_key: str, model: str, max_tokens: int, temperature: float):
+    def __init__(self, api_key: str, model: str, max_tokens: int, temperature: float) -> None:
         self._openai_client = openai.OpenAI(api_key=api_key)
         self._model = model
         self._max_tokens = max_tokens

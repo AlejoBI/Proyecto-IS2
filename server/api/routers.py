@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Respons
 from pydantic import BaseModel
 from server.app import usecases
 from server.api import dependencies
+from typing import List, Dict, Any, Optional
 
 rag_router = APIRouter()
 
@@ -13,20 +14,20 @@ class DocumentInput(BaseModel):
 
 @rag_router.get("/generate-answer", status_code=201)
 def generate_answer(query: str,
-                    rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                    rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> str:
     return rag_service.generate_answer(query)
 
 
 @rag_router.post("/save-document", status_code=201)
 def save_document(file: UploadFile = File(...),
-                  rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                  rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str] :
     # Guardar la información del archivo en MongoDB
     return rag_service.save_document(file)
 
 
 @rag_router.get("/get-document")
 def get_document(document_id: str,
-                 rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                 rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Optional[Dict[str, Any]]:
     document = rag_service.get_document(document_id)
     if document:
         return document
@@ -34,7 +35,7 @@ def get_document(document_id: str,
 
 
 @rag_router.get("/get-vectors", status_code=201)
-def get_vectors(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+def get_vectors(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Any:
     return rag_service.get_vectors()
 
 
@@ -48,7 +49,7 @@ class UserInput(BaseModel):
 
 @rag_router.post("/register", status_code=201)
 def register_user(user: UserInput,
-                  user_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                  user_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str]:
     result = user_service.save_user(user)
     if result and result.get("status") == "User already exists":
         raise HTTPException(status_code=400, detail="User already exists")
@@ -62,7 +63,7 @@ class LoginInput(BaseModel):
 
 @rag_router.post("/login", status_code=200)
 def login_user(user: LoginInput, response: Response,
-               user_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+               user_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, Any]:
     user_data = user_service.get_user(user.email, user.password)
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -87,21 +88,21 @@ def login_user(user: LoginInput, response: Response,
 
 @rag_router.get("/checkauth", status_code=200)
 def check_auth(request: Request,
-               rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+               rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str]:
     if not rag_service.is_logged_in(request):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"status": "Authenticated"}
 
 
 @rag_router.post("/logout", status_code=200)
-def logout_user(response: Response):
+def logout_user(response: Response) -> Dict[str, str]:
     # Eliminar la cookie del token
     response.delete_cookie(key="access_token")
     return {"status": "User logged out successfully"}
 
 
 @rag_router.get("/admin/get-users", status_code=200)
-def admin_get_users(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+def admin_get_users(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> List[Dict[str, Any]]:
     users = rag_service.get_all_users()
     # Convertir ObjectId a string
     for user in users:
@@ -111,7 +112,7 @@ def admin_get_users(rag_service: usecases.RAGService = Depends(dependencies.RAGS
 
 @rag_router.post("/admin/save-user", status_code=201)
 def admin_save_user(user: UserInput,
-                    rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                    rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, Any]:
     saved_user = rag_service.save_user(user)
     if saved_user:
         return {"status": "User saved successfully", "user": saved_user}
@@ -120,11 +121,11 @@ def admin_save_user(user: UserInput,
 
 @rag_router.put("/admin/update-user", status_code=200)
 def admin_update_user(updated_data: UserInput,
-                      rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                      rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str]:
     UpdateResult = rag_service.update_user(updated_data)
-    if UpdateResult.modified_count > 0:
+    if UpdateResult.get("modified_count", 0) > 0:
         return {"status": "User updated successfully"}
-    elif UpdateResult.matched_count == 0:
+    elif UpdateResult.get("matched_count", 0) == 0:
         return {"status": "User not found"}
     else:
         return {"status": "No changes made to the user"}
@@ -133,8 +134,7 @@ def admin_update_user(updated_data: UserInput,
 @rag_router.delete("/admin/delete-user", status_code=200)
 def admin_delete_user(
         email: str,
-        rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)
-):
+        rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str]:
     result = rag_service.delete_user(email)
     if result["status"] == "User deleted":
         return {"status": "User deleted successfully"}
@@ -142,14 +142,14 @@ def admin_delete_user(
 
 
 @rag_router.get("/admin/get-documents", status_code=200)
-def admin_get_documents(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+def admin_get_documents(rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> List[Dict[str, Any]]:
     documents = rag_service.get_documents()
-    return documents
+    return [document.dict() for document in documents]
 
 
 @rag_router.delete("/admin/delete-document", status_code=200)
 def admin_delete_document(document_id: str,
-                          rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)):
+                          rag_service: usecases.RAGService = Depends(dependencies.RAGServiceSingleton.get_instance)) -> Dict[str, str]:
     result = rag_service.delete_document(document_id)
     if result["status"] == "Document deleted":
         return {"status": "Document deleted successfully"}

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Any
 from server.core import ports
 from server.core import models
 import pymongo as pm
@@ -15,7 +15,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         self.documents = self.db[documents_collection]
 
     # User methods --------------------------------
-    def save_user(self, user: models.User) -> dict | None:
+    def save_user(self, user: models.User) -> Optional[Dict[str, Any]]:
         # Verificar si el usuario ya existe
         user_found = self.users.find_one({"email": user.email})
         if user_found:
@@ -38,7 +38,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             "isActive": user.isActive
         }
 
-    def get_user(self, email: str, password: str) -> dict | None:
+    def get_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         user = self.users.find_one({"email": email})
         if user:
             password_bytes = password.encode()
@@ -65,7 +65,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
     def get_all_users(self) -> List[models.User]:
         return list(self.db.users.find())
 
-    def update_user(self, updated_data: models.User) -> dict | None:
+    def update_user(self, updated_data: models.User) -> Optional[Dict[str, Any]]:
         """Llamar al repositorio para actualizar un usuario."""
         user_dict = updated_data.dict()
         try:
@@ -78,7 +78,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             print(f"Error in update_user: {e}")
             return {"status": "Error updating user"}
 
-    def delete_user(self, email: str) -> dict | None:
+    def delete_user(self, email: str) -> Optional[Dict[str, Any]]:
         """Eliminar un usuario por email."""
         result = self.users.delete_one({"email": email})
         if result.deleted_count > 0:
@@ -86,7 +86,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         return {"status": "User not found"}
 
     # Document methods --------------------------------
-    def get_documents(self, n_results: int | None = None) -> List[models.Document]:
+    def get_documents(self, n_results: Optional[int] = None) -> List[models.Document]:
         if n_results:
             documents = self.db.documents.find().limit(n_results)
         else:
@@ -98,14 +98,14 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         self.documents.insert_one(
             {"id": document.id, "title": document.title, "path": document.path, "content": document.content})
 
-    def get_document(self, id: str) -> models.Document | None:
+    def get_document(self, id: str) -> Optional[models.Document]:
         document = self.documents.find_one({"id": id})
         if document:
             return models.Document(id=document["id"], title=document["title"],
                                    path=document["path"], content=document["content"])
         return None
 
-    def delete_document(self, document_id: str) -> dict | None:
+    def delete_document(self, document_id: str) -> Optional[Dict[str, Any]]:
         result = self.documents.delete_one({"id": document_id})
         if result.deleted_count > 0:
             return {"status": "Document deleted"}

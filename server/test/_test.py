@@ -4,28 +4,24 @@ from server.core.models import Document, User
 from server.core import ports
 from server.helpers.strategies import FileReader
 from fastapi import UploadFile
-from datetime import timedelta
 import bcrypt
 import os
-from server.middlewares.jwt import create_access_token
 from server.app.usecases import RAGService
-
 from fastapi.testclient import TestClient
-from server.api.routers import rag_router  # El router de las rutas
-from server.app.configurations import Settings  # Para la configuración
+from server.api.routers import rag_router
+from server.app.configurations import Settings
+from typing import Tuple
 
-# Crear el cliente de pruebas para FastAPI
 client = TestClient(rag_router)
 
 
-# Configuración inicial de las pruebas (puede variar según tu configuración)
 @pytest.fixture(scope="module")
-def test_settings():
+def test_settings() -> Settings:
     return Settings()
 
 
 @pytest.fixture
-def mock_repositories():
+def mock_repositories() -> Tuple[ports.DocumentRepositoryPort, ports.MongoDBRepositoryPort, ports.LlmPort]:
     document_repo = MagicMock(spec=ports.DocumentRepositoryPort)
     mongo_repo = MagicMock(spec=ports.MongoDBRepositoryPort)
     openai_adapter = MagicMock(spec=ports.LlmPort)
@@ -33,13 +29,13 @@ def mock_repositories():
 
 
 @pytest.fixture
-def rag_service(mock_repositories):
+def rag_service(mock_repositories) -> Tuple[ports.DocumentRepositoryPort, ports.MongoDBRepositoryPort, ports.LlmPort]:
     document_repo, mongo_repo, openai_adapter = mock_repositories
     return RAGService(document_repo, mongo_repo, openai_adapter)
 
 
 # Prueba End-to-End
-def test_e2e_document_upload_and_question(test_settings):
+def test_e2e_document_upload_and_question(test_settings) -> None:
     # 1. Simulate document upload
     file_name = "sample.txt"
     file_content = b"Este es un documento de prueba sobre inteligencia artificial y machine learning."
@@ -58,7 +54,7 @@ def test_e2e_document_upload_and_question(test_settings):
     assert upload_response.json()["status"] == "Document saved successfully"
 
     # Get the ID of the saved document (assuming it's returned in the response)
-    document_id = upload_response.json().get("document_id")
+    upload_response.json().get("document_id")
 
     # 2. Simulate sending a question
     query = "¿Qué dice exactamente el documento el documento?"
@@ -76,7 +72,7 @@ def test_e2e_document_upload_and_question(test_settings):
 
 
 # Prueba unitaria para generar una respuesta
-def test_generate_answer(rag_service, mock_repositories):
+def test_generate_answer(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
     document_repo.get_documents.return_value = [Document(title="Test Doc", content="This is the content")]
 
@@ -92,7 +88,7 @@ def test_generate_answer(rag_service, mock_repositories):
 
 
 # Prueba unitaria para guardar un documento
-def test_save_document(rag_service, mock_repositories, tmpdir):
+def test_save_document(rag_service, mock_repositories, tmpdir) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Crear el mock de UploadFile
@@ -105,7 +101,7 @@ def test_save_document(rag_service, mock_repositories, tmpdir):
 
     # Mock de la función que guarda el archivo en la carpeta media
     tmpdir_path = tmpdir.mkdir("media")
-    file_path = os.path.join(tmpdir_path, "test_document.txt")
+    os.path.join(tmpdir_path, "test_document.txt")
 
     # Simular FileReader para leer el contenido
     FileReader.read_file = MagicMock(return_value="Test file content")
@@ -117,7 +113,7 @@ def test_save_document(rag_service, mock_repositories, tmpdir):
     document_repo.save_document.assert_called_once()
 
 
-def test_save_document_file_not_found(rag_service, mock_repositories):
+def test_save_document_file_not_found(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Crear el mock de UploadFile
@@ -139,7 +135,7 @@ def test_save_document_file_not_found(rag_service, mock_repositories):
     document_repo.save_document.assert_not_called()
 
 
-def test_save_document_value_error(rag_service, mock_repositories):
+def test_save_document_value_error(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Crear el mock de UploadFile
@@ -161,7 +157,7 @@ def test_save_document_value_error(rag_service, mock_repositories):
     document_repo.save_document.assert_not_called()
 
 
-def test_save_document_generic_exception(rag_service, mock_repositories):
+def test_save_document_generic_exception(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Crear el mock de UploadFile
@@ -184,7 +180,7 @@ def test_save_document_generic_exception(rag_service, mock_repositories):
 
 
 # Prueba unitaria para obtener un usuario correctamente
-def test_get_user_success(rag_service, mock_repositories):
+def test_get_user_success(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     email = "test@example.com"
@@ -211,7 +207,7 @@ def test_get_user_success(rag_service, mock_repositories):
     mongo_repo.get_user.assert_called_once_with(email, password)
 
 
-def test_get_user_not_found(rag_service, mock_repositories):
+def test_get_user_not_found(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     email = "nonexistent@example.com"
@@ -227,7 +223,7 @@ def test_get_user_not_found(rag_service, mock_repositories):
     mongo_repo.get_user.assert_called_once_with(email, password)
 
 
-def test_get_user_exception(rag_service, mock_repositories):
+def test_get_user_exception(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     email = "test@example.com"
@@ -244,7 +240,7 @@ def test_get_user_exception(rag_service, mock_repositories):
 
 
 # Prueba unitaria para guardar un usuario
-def test_save_user(rag_service, mock_repositories):
+def test_save_user(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Añadir el campo 'role' que es requerido por el modelo User
@@ -258,7 +254,7 @@ def test_save_user(rag_service, mock_repositories):
     mongo_repo.save_user.assert_called_once_with(user)
 
 
-def test_save_user_exception(rag_service, mock_repositories):
+def test_save_user_exception(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Añadir el campo 'role' que es requerido por el modelo User
@@ -275,7 +271,7 @@ def test_save_user_exception(rag_service, mock_repositories):
 
 
 # Pruebas unitarias para el método get_document
-def test_get_document_success(rag_service, mock_repositories):
+def test_get_document_success(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Configurar el documento de prueba
@@ -290,7 +286,7 @@ def test_get_document_success(rag_service, mock_repositories):
     assert result == mock_document
 
 
-def test_get_document_not_found(rag_service, mock_repositories):
+def test_get_document_not_found(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Simular que el documento no existe
@@ -305,7 +301,7 @@ def test_get_document_not_found(rag_service, mock_repositories):
 
 
 # Pruebas unitarias para el método get_vectors
-def test_get_vectors_success(rag_service, mock_repositories):
+def test_get_vectors_success(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Configurar la lista de vectores de prueba
@@ -320,7 +316,7 @@ def test_get_vectors_success(rag_service, mock_repositories):
     assert result == mock_vectors
 
 
-def test_get_vectors_empty(rag_service, mock_repositories):
+def test_get_vectors_empty(rag_service, mock_repositories) -> None:
     document_repo, mongo_repo, openai_adapter = mock_repositories
 
     # Simular que no hay vectores

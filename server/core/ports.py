@@ -1,19 +1,20 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional, Any
 from server.core import models
 from fastapi import Request
 
+
 class DocumentRepositoryPort(ABC):
     @abstractmethod
-    def save_document(self, document: models.Document, content: str, openai_client) -> None:
+    def save_document(self, document: models.Document, content: str, openai_client: Any) -> None:
         pass
 
     @abstractmethod
-    def get_documents(self, query: str, openai_client, n_results: int | None = None) -> List[models.Document]:
+    def get_documents(self, query: str, openai_client: Any, n_results: Optional[int] = None) -> List[models.Document]:
         pass
 
     @abstractmethod
-    def get_vectors(self):
+    def get_vectors(self) -> Any:
         pass
 
 
@@ -31,7 +32,7 @@ class MongoDBRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def get_document(self, document_id: str) -> models.Document | None:
+    def get_document(self, document_id: str) -> Optional[models.Document]:
         pass
 
     @abstractmethod
@@ -43,20 +44,21 @@ class MongoDBRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def update_user(self, user: models.User) -> dict | None:
+    def update_user(self, user: models.User) -> Optional[dict]:
         pass
 
     @abstractmethod
-    def delete_user(self, email: str) -> dict | None:
+    def delete_user(self, email: str) -> Optional[dict]:
         pass
 
     @abstractmethod
-    def get_documents(self, n_results: int | None = None) -> List[models.Document]:
+    def get_documents(self, n_results: Optional[int] = None) -> List[models.Document]:
         pass
 
     @abstractmethod
-    def delete_document(self, document_id: str) -> dict | None:
+    def delete_document(self, document_id: str) -> Optional[dict]:
         pass
+
 
 class LlmPort(ABC):
     @abstractmethod

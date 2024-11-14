@@ -1,5 +1,4 @@
-from typing import List
-
+from typing import List, Optional, Dict, Any
 from server.core.models import Document, User
 from server.core import ports
 from server.helpers.strategies import FileReader
@@ -11,7 +10,7 @@ from datetime import timedelta
 
 class RAGService:
     def __init__(self, document_repo: ports.DocumentRepositoryPort, mongo_repo: ports.MongoDBRepositoryPort,
-                 openai_adapter: ports.LlmPort):
+                 openai_adapter: ports.LlmPort) -> None:
         self.document_repo = document_repo
         self.mongo_repo = mongo_repo
         self.openai_adapter = openai_adapter
@@ -20,10 +19,10 @@ class RAGService:
     def generate_answer(self, query: str) -> str:
         documents = self.document_repo.get_documents(query, self.openai_adapter)
         print(f"Documents: {documents}")
-        context = " ".join([doc.content for doc in documents])
+        context = " ".join([doc.content for doc in documents if doc.content is not None])
         return self.openai_adapter.generate_text(prompt=query, retrieval_context=context)
 
-    def save_document(self, file: UploadFile) -> dict:
+    def save_document(self, file: UploadFile) -> Dict[str, str]:
         # Obtener el nombre del archivo
         file_name = file.filename
 
@@ -51,20 +50,19 @@ class RAGService:
             return {"status": "Document saved successfully"}
 
         except ValueError as ve:
-            return {"status": str(ve)}  # Si el archivo no es soportado, devolver mensaje claro
+            return {"status": str(ve)}
         except Exception as e:
             return {"status": str(e)}
 
-    def save_user(self, user: User) -> dict | None:
+    def save_user(self, user: User) -> Optional[Dict[str, Any]]:
         try:
-            # Llamada al método de guardado del repositorio
-            saved_user = self.mongo_repo.save_user(user)
-            return saved_user
+            self.mongo_repo.save_user(user)
+            return user.dict()
         except Exception as e:
             print(f"Error in save_user: {e}")
             return None
 
-    def get_user(self, email: str, password: str) -> dict | None:
+    def get_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         try:
             user = self.mongo_repo.get_user(email, password)
             if user:
@@ -98,17 +96,17 @@ class RAGService:
     def get_all_users(self) -> List[User]:
         return self.mongo_repo.get_all_users()
 
-    def update_user(self, user: User) -> dict | None:
+    def update_user(self, user: User) -> Optional[Dict[str, Any]]:
         """Actualizar un usuario por email."""
         user_dict = user.dict()
         try:
             result = self.mongo_repo.users.update_one({"email": user_dict.get("email")}, {"$set": user_dict})
-            return result
+            return result.raw_result
         except Exception as e:
             print(f"Error in update_user: {e}")
             return None
 
-    def delete_user(self, email: str) -> dict | None:
+    def delete_user(self, email: str) -> Optional[Dict[str, Any]]:
         """Eliminar un usuario por su email."""
         try:
             return self.mongo_repo.delete_user(email)
@@ -116,16 +114,16 @@ class RAGService:
             print(f"Error in delete_user: {e}")
             return None
 
-    def get_documents(self, n_results: int | None = None) -> List[Document]:
+    def get_documents(self, n_results: Optional[int] = None) -> List[Document]:
         return self.mongo_repo.get_documents(n_results)
 
-    def get_document(self, id: str) -> Document:
+    def get_document(self, id: str) -> Optional[Document]:
         return self.mongo_repo.get_document(id)
 
-    def get_vectors(self):
+    def get_vectors(self) -> Any:
         return self.document_repo.get_vectors()
 
-    def delete_document(self, document_id: str) -> dict | None:
+    def delete_document(self, document_id: str) -> Optional[Dict[str, Any]]:
         try:
             return self.mongo_repo.delete_document(document_id)
         except Exception as e:

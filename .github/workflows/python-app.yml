@@ -26,6 +26,21 @@ jobs:
     - name: Run tests
       run: |
         poetry run pytest --cov=app --cov-report=xml
+      env:
+        ALGORITHM: ${{ secrets.ALGORITHM }}
+        APP_HOST: ${{ secrets.APP_HOST }}
+        APP_PORT: ${{ secrets.APP_PORT }}
+        MAX_TOKENS: ${{ secrets.MAX_TOKENS }}
+        MODEL: ${{ secrets.MODEL }}
+        MONGODB_COLLECTION_DOCUMENTS: ${{ secrets.MONGODB_COLLECTION_DOCUMENTS }}
+        MONGODB_COLLECTION_USERS: ${{ secrets.MONGODB_COLLECTION_USERS }}
+        MONGODB_DATABASE: ${{ secrets.MONGODB_DATABASE }}
+        MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        NUMBER_OF_VECTORIAL_RESULTS: ${{ secrets.NUMBER_OF_VECTORIAL_RESULTS }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        REACT_VITE_CONNECTION: ${{ secrets.REACT_VITE_CONNECTION }}
+        SECRET_ACCESS_TOKEN: ${{ secrets.SECRET_ACCESS_TOKEN }}
+        TEMPERATURE: ${{ secrets.TEMPERATURE }}
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

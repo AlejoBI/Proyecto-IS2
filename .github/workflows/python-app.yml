@@ -25,7 +25,7 @@ jobs:
 
     - name: Run tests
       run: |
-        poetry run pytest --cov=app --cov-report=xml
+        poetry run pytest --cov=server --cov-report=xml
       env:
         ALGORITHM: ${{ secrets.ALGORITHM }}
         APP_HOST: ${{ secrets.APP_HOST }}

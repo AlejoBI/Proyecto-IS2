@@ -3,11 +3,15 @@ from typing import Any
 
 
 def get_openai_embeddings(text: str, openai_client: Any) -> list[float]:
+    if hasattr(openai_client, "get_embedding"):
+        return openai_client.get_embedding(text)
+
+    # Compatibilidad con el adaptador utilizado por versiones anteriores.
     response = openai_client._openai_client.embeddings.create(
         input=text,
-        model="text-embedding-ada-002"
+        model="text-embedding-3-small",
     )
-    return response.data[0].embedding  # Devolver la lista de floats
+    return response.data[0].embedding
 
 
 def document_to_vectors(content: str, openai_client: Any) -> list[list[float]]:

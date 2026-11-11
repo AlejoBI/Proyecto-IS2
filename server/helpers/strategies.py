@@ -27,7 +27,7 @@ class PDFFileManager(FileManager):
                 reader = PyPDF2.PdfReader(file)
                 text = ''
                 for page in range(len(reader.pages)):
-                    text += reader.pages[page].extract_text()
+                    text += reader.pages[page].extract_text() or ''
 
                 cleaned_text = self.clean_text(text)
                 return cleaned_text

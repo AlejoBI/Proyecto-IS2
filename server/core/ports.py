@@ -10,11 +10,20 @@ class DocumentRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def get_documents(self, query: str, openai_client: Any, n_results: Optional[int] = None) -> List[models.Document]:
+    def get_documents(self, query: str, openai_client: Any, n_results: Optional[int] = None,
+                      session_id: Optional[str] = None) -> List[models.Document]:
         pass
 
     @abstractmethod
     def get_vectors(self) -> Any:
+        pass
+
+    @abstractmethod
+    def delete_document(self, document_id: str) -> int:
+        pass
+
+    @abstractmethod
+    def has_document(self, document_id: str, provider: str = "openai") -> bool:
         pass
 
 
@@ -32,7 +41,28 @@ class MongoDBRepositoryPort(ABC):
         pass
 
     @abstractmethod
+    def update_document_status(self, document_id: str, status: models.DocumentStatus) -> None:
+        pass
+
+    @abstractmethod
     def get_document(self, document_id: str) -> Optional[models.Document]:
+        pass
+
+    @abstractmethod
+    def get_user_documents(self, email: str) -> List[models.Document]:
+        pass
+
+    @abstractmethod
+    def get_session_documents(self, session_id: str) -> List[models.Document]:
+        pass
+
+    @abstractmethod
+    def save_question_history(self, email: str, question: str, answer: str,
+                              sources: list[dict], provider: str = "openai") -> None:
+        pass
+
+    @abstractmethod
+    def get_question_history(self, email: str, limit: int = 50) -> List[dict]:
         pass
 
     @abstractmethod

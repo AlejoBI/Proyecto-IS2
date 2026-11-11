@@ -1,0 +1,7 @@
+[
+  {
+    "question": "What is the main topic?",
+    "reference_answer": "Defined by the uploaded evaluation document.",
+    "expected_sources": ["evaluation-document.txt"]
+  }
+]

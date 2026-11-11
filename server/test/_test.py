@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from server.core.models import Document, User
 from server.core import ports
 from server.helpers.strategies import FileReader
-from fastapi import UploadFile
+from fastapi import FastAPI, UploadFile
 import bcrypt
 import os
 from server.app.usecases import RAGService
@@ -12,7 +12,9 @@ from server.api.routers import rag_router
 from server.app.configurations import Settings
 from typing import Tuple
 
-client = TestClient(rag_router)
+app = FastAPI()
+app.include_router(rag_router)
+client = TestClient(app)
 
 
 @pytest.fixture(scope="module")
@@ -64,7 +66,7 @@ def test_e2e_document_upload_and_question(test_settings) -> None:
         params={"query": query}
     )
 
-    assert question_response.status_code == 201
+    assert question_response.status_code == 200
     response_text = question_response.json()
     assert response_text
     assert "inteligencia artificial y machine learning" in response_text

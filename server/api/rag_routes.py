@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from server.api import dependencies
 from server.api.schemas import AnswerResponse, DocumentOperationResponse
@@ -53,7 +54,7 @@ def generate_answer(
 
 
 @rag_router.post("/save-document", status_code=201, response_model=DocumentOperationResponse)
-def save_document(
+async def save_document(
     file: UploadFile = File(...),
     session: SessionContext = Depends(dependencies.get_rate_limit),
     rag_service: usecases.RAGService = Depends(dependencies.get_rag_service),
@@ -65,8 +66,8 @@ def save_document(
     if extension not in allowed_extensions:
         raise HTTPException(status_code=415, detail="Unsupported file type")
 
-    payload = file.file.read(configs.MAX_FILE_SIZE_BYTES + 1)
-    file.file.seek(0)
+    payload = await file.read(configs.MAX_FILE_SIZE_BYTES + 1)
+    await file.seek(0)
     if len(payload) > configs.MAX_FILE_SIZE_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds the maximum allowed size")
 
@@ -81,12 +82,16 @@ def save_document(
 
     owner_email = current_user.get("sub") if current_user else None
     provider = rag_service.openai_adapter.provider
-    result = rag_service.save_document(file, session_id=session.id,
-                                       expires_at=None if owner_email else session.expires_at,
-                                       max_file_size=configs.MAX_FILE_SIZE_BYTES,
-                                       checksum=checksum,
-                                       owner_email=owner_email,
-                                       provider=provider)
+    result = await run_in_threadpool(
+        rag_service.save_document,
+        file,
+        session_id=session.id,
+        expires_at=None if owner_email else session.expires_at,
+        max_file_size=configs.MAX_FILE_SIZE_BYTES,
+        checksum=checksum,
+        owner_email=owner_email,
+        provider=provider,
+    )
     if result.get("status") != "Document saved successfully":
         sessions.mongo.sessions.update_one(
             {"id": session.id},

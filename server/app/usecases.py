@@ -5,6 +5,7 @@ from server.helpers.strategies import FileReader
 import os
 import hashlib
 import logging
+from time import perf_counter
 from pathlib import Path
 from uuid import uuid4
 from fastapi import UploadFile, Request
@@ -37,6 +38,7 @@ class RAGService:
     def generate_answer_with_sources(self, query: str, session_id: str,
                                      owner_email: Optional[str] = None,
                                      provider: str = "openai") -> Dict[str, Any]:
+        started_at = perf_counter()
         self._ensure_documents_indexed(session_id, owner_email, provider)
         if owner_email:
             if provider == "openai":
@@ -77,6 +79,13 @@ class RAGService:
                 self.mongo_repo.save_question_history(
                     owner_email, query, answer, result["sources"], provider=provider
                 )
+        logger.info(
+            "rag.answer.completed provider=%s sources=%d duration_ms=%.2f authenticated=%s",
+            provider,
+            len(result["sources"]),
+            (perf_counter() - started_at) * 1000,
+            bool(owner_email),
+        )
         return result
 
     def _ensure_documents_indexed(self, session_id: str, owner_email: Optional[str],
@@ -101,6 +110,7 @@ class RAGService:
                        checksum: Optional[str] = None,
                        owner_email: Optional[str] = None,
                        provider: str = "openai") -> Dict[str, str]:
+        started_at = perf_counter()
         # Obtener el nombre del archivo
         file_name = Path(file.filename or "document.txt").name
 
@@ -153,6 +163,12 @@ class RAGService:
             result = {"status": "Document saved successfully"}
             if session_id:
                 result["document_id"] = document.id
+            logger.info(
+                "rag.document.completed provider=%s document_id=%s duration_ms=%.2f",
+                provider,
+                document.id,
+                (perf_counter() - started_at) * 1000,
+            )
             return result
 
         except ValueError as ve:
@@ -160,6 +176,12 @@ class RAGService:
             return {"status": str(ve)}
         except Exception as e:
             file_path.unlink(missing_ok=True)
+            logger.warning(
+                "rag.document.failed provider=%s duration_ms=%.2f error_type=%s",
+                provider,
+                (perf_counter() - started_at) * 1000,
+                type(e).__name__,
+            )
             return {"status": str(e)}
 
     def save_user(self, user: User) -> Optional[Dict[str, Any]]:

@@ -1,0 +1,10 @@
+﻿.git
+.env
+.venv
+__pycache__
+*.pyc
+client/node_modules
+client/dist
+chroma_data
+.coverage
+coverage.xml

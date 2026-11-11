@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      APP_HOST: 127.0.0.1
+      APP_PORT: 8000
+      REACT_VITE_CONNECTION: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173
+      SECRET_ACCESS_TOKEN: ci-only-secret
+      ALGORITHM: HS256
+      MONGODB_URI: mongodb://localhost:27017
+      MONGODB_DATABASE: proyecto_is2
+      MONGODB_COLLECTION_USERS: users
+      MONGODB_COLLECTION_DOCUMENTS: documents
+      OPENAI_API_KEY: ""
+      MODEL: gpt-4o-mini
+      EMBEDDING_MODEL: text-embedding-3-small
+      MAX_TOKENS: 100
+      TEMPERATURE: 0.2
+      NUMBER_OF_VECTORIAL_RESULTS: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+      - run: poetry install --no-root --no-interaction
+      - run: poetry run pytest server/test -q -k 'not e2e'
+      - run: poetry run python -m compileall -q server
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - working-directory: client
+        run: npm ci
+      - working-directory: client
+        run: npm run lint
+      - working-directory: client
+        run: npm run format:check
+      - working-directory: client
+        run: npm run build

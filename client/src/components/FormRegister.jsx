@@ -1,77 +1,68 @@
 import { useAuth } from "../context/AuthContext";
-import { Form, Button, Container } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
 const FormRegister = () => {
-  const { signup } = useAuth();
+  const { signup, loading } = useAuth();
   const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const username = e.target.username.value;
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-    const confirmPassword = e.target.confirmPassword.value;
-    const role = "user";
-
-    signup({ username, email, password, confirmPassword, role });
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    await signup({
+      username: form.username.value,
+      email: form.email.value,
+      password: form.password.value,
+      confirmPassword: form.confirmPassword.value,
+      role: "user",
+    });
     navigate("/");
   };
-
   return (
-    <Container className="p-4">
-      <Form onSubmit={handleSubmit}>
-        <Form.Group controlId="username" className="mb-3">
-          <Form.Label>Username</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Enter username"
-            name="username"
-            required
-          />
-        </Form.Group>
-
-        <Form.Group controlId="email" className="mb-3">
-          <Form.Label>Email address</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Enter email"
-            name="email"
-            required
-          />
-        </Form.Group>
-
-        <Form.Group controlId="password" className="mb-3">
-          <Form.Label>Password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Enter password"
-            name="password"
-            required
-          />
-        </Form.Group>
-
-        <Form.Group controlId="confirmPassword" className="mb-3">
-          <Form.Label>Confirm Password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Confirm password"
-            name="confirmPassword"
-            required
-          />
-        </Form.Group>
-
-        <Button
-          variant="success"
-          type="submit"
-          className="w-100"
-          style={{ backgroundColor: "#007bff", borderColor: "#007bff" }}
-        >
-          Register
-        </Button>
-      </Form>
-    </Container>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <label className="block text-sm font-semibold text-slate-200">
+        Username
+        <input
+          name="username"
+          minLength="3"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <label className="block text-sm font-semibold text-slate-200">
+        Email
+        <input
+          name="email"
+          type="email"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <label className="block text-sm font-semibold text-slate-200">
+        Password
+        <input
+          name="password"
+          type="password"
+          minLength="8"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <label className="block text-sm font-semibold text-slate-200">
+        Confirm password
+        <input
+          name="confirmPassword"
+          type="password"
+          minLength="8"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <button
+        disabled={loading}
+        className="bg-brand-500 hover:bg-brand-600 w-full rounded-xl px-4 py-3 font-bold text-white transition disabled:opacity-50"
+      >
+        {loading ? "Creating..." : "Create account"}
+      </button>
+    </form>
   );
 };
 

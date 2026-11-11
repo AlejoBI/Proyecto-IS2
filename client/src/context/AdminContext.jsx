@@ -60,9 +60,7 @@ export const AdminProvider = ({ children }) => {
     try {
       await updateUserRequest(updatedData);
       setUsers((prev) =>
-        prev.map((user) =>
-          user.email === updatedData.email ? updatedData : user
-        )
+        prev.map((user) => (user.email === updatedData.email ? updatedData : user)),
       );
       if (user.email === updatedData.email && user.role !== "admin") {
         setUser(updatedData);

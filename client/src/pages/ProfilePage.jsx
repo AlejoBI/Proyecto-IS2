@@ -1,4 +1,3 @@
-import React from "react";
 import CardProfile from "../components/profile/CardProfile";
 
 const ProfilePage = () => {

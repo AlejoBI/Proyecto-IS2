@@ -15,7 +15,7 @@ function ProtectedRoute() {
   }
 
   if (isAuthenticated && user.role === "admin") {
-    if (window.location.pathname.startsWith('/admin')) {
+    if (window.location.pathname.startsWith("/admin")) {
       return <Outlet />;
     } else {
       return <Navigate to="/admin/dashboard" replace />;
@@ -23,7 +23,7 @@ function ProtectedRoute() {
   }
 
   if (isAuthenticated && user.role === "user") {
-    if (window.location.pathname.startsWith('/user')) {
+    if (window.location.pathname.startsWith("/user")) {
       return <Outlet />;
     } else {
       return <Navigate to="/" replace />;

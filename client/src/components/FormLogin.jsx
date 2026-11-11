@@ -1,59 +1,47 @@
-import { useAuth } from "../context/AuthContext"; 
-import { Form, Button, Container } from "react-bootstrap";
-import { useNavigate } from 'react-router-dom'; 
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const FormLogin = () => {
-    const { signin } = useAuth(); 
-    const navigate = useNavigate(); 
+  const { signin, loading } = useAuth();
+  const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault(); 
-        const email = e.target.email.value; 
-        const password = e.target.password.value; 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const success = await signin({
+      email: event.target.email.value,
+      password: event.target.password.value,
+    });
+    if (success) navigate("/");
+  };
 
-        const data = { email, password }; 
-        const success = await signin(data);
-
-        if (success) {
-            navigate('/'); 
-        } else {
-            console.error("Error en la autenticación"); 
-        }
-    };
-
-    return (
-        <Container className="p-4">
-            <Form onSubmit={handleSubmit}>
-                <Form.Group controlId="email" className="mb-3">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control
-                        type="email"
-                        placeholder="Enter email"
-                        name="email"
-                        required
-                    />
-                </Form.Group>
-
-                <Form.Group controlId="password" className="mb-3">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                        type="password"
-                        placeholder="Enter password"
-                        name="password"
-                        required
-                    />
-                </Form.Group>
-
-                <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100"
-                    style={{ backgroundColor: "#007bff", borderColor: "#007bff" }}>
-                    Login
-                </Button>
-            </Form>
-        </Container>
-    );
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <label className="block text-sm font-semibold text-slate-200">
+        Email
+        <input
+          name="email"
+          type="email"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <label className="block text-sm font-semibold text-slate-200">
+        Password
+        <input
+          name="password"
+          type="password"
+          required
+          className="focus:border-brand-500 mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
+        />
+      </label>
+      <button
+        disabled={loading}
+        className="bg-brand-500 hover:bg-brand-600 w-full rounded-xl px-4 py-3 font-bold text-white transition disabled:opacity-50"
+      >
+        {loading ? "Signing in..." : "Sign in"}
+      </button>
+    </form>
+  );
 };
 
 export default FormLogin;

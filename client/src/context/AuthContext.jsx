@@ -1,11 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import {
-  registerRequest,
-  loginRequest,
-  logoutRequest,
-  checkAuthRequest,
-} from "../api/auth";
-import Cookies from "js-cookie";
+import { registerRequest, loginRequest, logoutRequest, checkAuthRequest } from "../api/auth";
 
 export const AuthContext = createContext();
 
@@ -53,7 +47,6 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem("user", JSON.stringify(res));
       setUser(res);
       setIsAuthenticated(true);
-      Cookies.set("access_token", res.token, { expires: 1 });
       return true;
     } catch (error) {
       if (error.message === "Request failed with status code 401") {
@@ -77,7 +70,6 @@ export const AuthProvider = ({ children }) => {
     await logoutRequest();
     setUser(null);
     setIsAuthenticated(false);
-    Cookies.remove("access_token");
     sessionStorage.removeItem("user");
   };
 
@@ -85,18 +77,24 @@ export const AuthProvider = ({ children }) => {
     const checkLogin = async () => {
       setLoading(true);
       try {
-        const authenticated = await checkAuthRequest();
-        if (authenticated) {
+        const authData = await checkAuthRequest();
+        if (authData?.status === "Authenticated") {
           setIsAuthenticated(true);
           const infoUser = sessionStorage.getItem("user");
           if (infoUser) {
             setUser(JSON.parse(infoUser));
+          } else if (authData.user) {
+            setUser({
+              email: authData.user.sub,
+              username: authData.user.username,
+              role: authData.user.role,
+            });
           }
         } else {
           sessionStorage.removeItem("user");
           setIsAuthenticated(false);
         }
-      } catch (error) {
+      } catch {
         sessionStorage.removeItem("user");
         setIsAuthenticated(false);
       } finally {

@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
-import "bootstrap/dist/css/bootstrap.min.css";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminProvider } from "./context/AdminContext";
 

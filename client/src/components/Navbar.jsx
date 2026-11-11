@@ -1,87 +1,64 @@
-import {
-  Container,
-  Nav,
-  Navbar,
-  Button,
-  Image,
-  Dropdown,
-} from "react-bootstrap";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Logo from "../assests/images/Logo.jpg";
-import "../assests/css/Navbar.css";
 
 const NavbarComponent = () => {
   const { isAuthenticated, logout, user } = useAuth();
-  const tittle = user ? `${user.username}` : "Home";
+  const [open, setOpen] = useState(false);
+  const title = user ? `${user.username}` : "Home";
 
   return (
-    <Navbar
-      style={{
-        backgroundColor: "white",
-        padding: "0.3% 8%",
-      }}
-      variant="dark"
-      expand="lg"
-    >
-      <Container>
-        <Navbar.Brand href="/">
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <Image
-              src={Logo}
-              alt="Logo"
-              height="70"
-              className="d-inline-block align-top"
-            />
-          </div>
-        </Navbar.Brand>
-        <Navbar.Toggle aria-controls="navbar-dark-example" />
-        <Navbar.Collapse id="navbar-dark-example">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              width: "100%",
-              paddingLeft: "28%",
-            }}
-          ></div>
-          <Nav style={{ justifyContent: "flex-end" }}>
-            {isAuthenticated ? (
-              <Dropdown>
-                <Dropdown.Toggle variant="primary" id="dropdown-basic">
-                  {tittle}
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu>
-                  {user && user.role === "user" && (
-                    <>
-                      <Dropdown.Item href="/user/profile">
-                        Profile
-                      </Dropdown.Item>
-                      <Dropdown.Divider />
-                    </>
+    <nav className="sticky top-0 z-40 border-b border-slate-800 bg-slate-950/90 px-4 py-3 backdrop-blur sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <a href="/" className="flex items-center gap-3">
+          <img
+            src={Logo}
+            alt="Proyecto IS2"
+            className="ring-brand-500/40 h-11 w-11 rounded-xl object-cover ring-2"
+          />
+          <span className="hidden text-sm font-bold tracking-wide text-white sm:block">
+            PROYECTO IS2
+          </span>
+        </a>
+        <div className="relative">
+          {isAuthenticated ? (
+            <>
+              <button
+                onClick={() => setOpen(!open)}
+                className="hover:border-brand-500 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition"
+              >
+                {title} <span className="ml-2 text-slate-400">⌄</span>
+              </button>
+              {open && (
+                <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">
+                  {user?.role === "user" && (
+                    <a
+                      href="/user/profile"
+                      className="block rounded-xl px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+                    >
+                      Profile
+                    </a>
                   )}
-                  <Dropdown.Item onClick={logout}>Logout</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            ) : (
-              <>
-                <Button
-                  href="/login"
-                  style={{
-                    backgroundColor: "#187A6B",
-                    borderColor: "#187A6B",
-                    marginRight: "10px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Login
-                </Button>
-              </>
-            )}
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+                  <button
+                    onClick={logout}
+                    className="block w-full rounded-xl px-3 py-2 text-left text-sm text-red-300 hover:bg-red-950/40"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <a
+              href="/login"
+              className="bg-brand-500 shadow-brand-950/40 hover:bg-brand-600 rounded-xl px-4 py-2 text-sm font-bold text-white shadow-lg transition"
+            >
+              Login
+            </a>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 };
 

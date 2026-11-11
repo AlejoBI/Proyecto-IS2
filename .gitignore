@@ -13,6 +13,8 @@ dist-ssr
 *.local
 .env
 media/*-test_document.txt
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*

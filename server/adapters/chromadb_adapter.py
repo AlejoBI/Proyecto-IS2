@@ -1,10 +1,14 @@
 from abc import ABC
+import logging
 import chromadb
 from typing import List, Optional, Any
 from server.core import ports
 from server.core import models
 from server.helpers.vectorize_document import chunk_text, get_openai_embeddings
 from server.adapters.openai_adapter import ProviderError
+
+
+logger = logging.getLogger(__name__)
 
 
 class NoDocumentsIndexedError(Exception):
@@ -68,6 +72,7 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
         elif session_id:
             kwargs["where"] = {"session_id": session_id}
         collection = self._get_collection(provider)
+        logger.info("rag.answer.retrieval.index_check.started provider=%s", provider)
         indexed = collection.get(
             where=kwargs.get("where"), include=["metadatas"]
         ) if kwargs.get("where") else collection.get(include=["metadatas"])
@@ -76,11 +81,18 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
                 "No documents are indexed for this session and provider"
             )
 
+        logger.info("rag.answer.retrieval.query_embedding.started provider=%s", provider)
         query_embedding = get_openai_embeddings(query, openai_client)
         if not query_embedding:
             raise ProviderError(f"{provider.capitalize()} returned an empty embedding")
         kwargs["query_embeddings"] = [query_embedding]
+        logger.info("rag.answer.retrieval.chromadb_query.started provider=%s", provider)
         results = collection.query(**kwargs)
+        logger.info(
+            "rag.answer.retrieval.chromadb_query.completed provider=%s results=%d",
+            provider,
+            len(results.get("ids", [[]])[0]),
+        )
 
         documents = []
         ids = results.get("ids", [[]])[0]

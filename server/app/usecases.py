@@ -39,7 +39,14 @@ class RAGService:
                                      owner_email: Optional[str] = None,
                                      provider: str = "openai") -> Dict[str, Any]:
         started_at = perf_counter()
+        logger.info("rag.answer.indexing.started provider=%s", provider)
         self._ensure_documents_indexed(session_id, owner_email, provider)
+        logger.info(
+            "rag.answer.indexing.completed provider=%s duration_ms=%.2f",
+            provider,
+            (perf_counter() - started_at) * 1000,
+        )
+        retrieval_started = perf_counter()
         if owner_email:
             if provider == "openai":
                 documents = self.document_repo.get_documents(
@@ -62,7 +69,20 @@ class RAGService:
         context = "\n\n---\n\n".join(
             doc.content for doc in documents if doc.content is not None
         )
+        logger.info(
+            "rag.answer.retrieval.completed provider=%s documents=%d duration_ms=%.2f",
+            provider,
+            len(documents),
+            (perf_counter() - retrieval_started) * 1000,
+        )
+        generation_started = perf_counter()
+        logger.info("rag.answer.generation.started provider=%s", provider)
         answer = self.openai_adapter.generate_text(prompt=query, retrieval_context=context)
+        logger.info(
+            "rag.answer.generation.completed provider=%s duration_ms=%.2f",
+            provider,
+            (perf_counter() - generation_started) * 1000,
+        )
         result = {
             "answer": answer,
             "sources": [
@@ -73,12 +93,14 @@ class RAGService:
         if provider != "openai":
             result["provider"] = provider
         if owner_email:
+            logger.info("rag.answer.history.started provider=%s", provider)
             if provider == "openai":
                 self.mongo_repo.save_question_history(owner_email, query, answer, result["sources"])
             else:
                 self.mongo_repo.save_question_history(
                     owner_email, query, answer, result["sources"], provider=provider
                 )
+            logger.info("rag.answer.history.completed provider=%s", provider)
         logger.info(
             "rag.answer.completed provider=%s sources=%d duration_ms=%.2f authenticated=%s",
             provider,

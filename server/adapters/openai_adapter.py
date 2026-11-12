@@ -87,14 +87,26 @@ class OpenAIAdapter(ports.LlmPort):
             )
 
     def generate_text(self, prompt: str, retrieval_context: str) -> str:
-        response = self._openai_client.chat.completions.create(
-            model=self._model,
-            messages=[
-                {"role": "system",
-                 "content": f"The context is: {retrieval_context}, please respond to the following question: "},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=self._max_tokens,
-            temperature=self._temperature,
-        )
+        logger.info("llm.generation.started provider=%s model=%s", self.provider, self._model)
+        try:
+            response = self._openai_client.chat.completions.create(
+                model=self._model,
+                messages=[
+                    {"role": "system",
+                     "content": f"The context is: {retrieval_context}, please respond to the following question: "},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=self._max_tokens,
+                temperature=self._temperature,
+            )
+        except Exception as error:
+            logger.warning(
+                "llm.generation.failed provider=%s model=%s error_type=%s status_code=%s",
+                self.provider,
+                self._model,
+                type(error).__name__,
+                getattr(error, "status_code", None),
+            )
+            raise
+        logger.info("llm.generation.completed provider=%s model=%s", self.provider, self._model)
         return response.choices[0].message.content

@@ -1,4 +1,6 @@
 import hashlib
+import logging
+from time import perf_counter
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -15,6 +17,7 @@ from server.adapters.openai_adapter import ProviderError
 
 
 rag_router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _document_summary(document) -> Dict[str, Any]:
@@ -91,24 +94,50 @@ def generate_answer(
     _, _, sessions, _ = dependencies.InfrastructureSingleton.get()
     if not sessions.mongo.increment_question_count(session.id, configs.MAX_QUESTIONS_PER_SESSION):
         raise HTTPException(status_code=429, detail="The question limit for this session was reached")
+    provider = rag_service.openai_adapter.provider
+    started_at = perf_counter()
+    logger.info(
+        "rag.answer.request.started provider=%s authenticated=%s query_length=%d",
+        provider,
+        bool(current_user),
+        len(query),
+    )
     try:
         owner_email = current_user.get("sub") if current_user else None
-        provider = rag_service.openai_adapter.provider
-        return rag_service.generate_answer_with_sources(
+        result = rag_service.generate_answer_with_sources(
             query, session_id=session.id, owner_email=owner_email, provider=provider
         )
+        logger.info(
+            "rag.answer.request.completed provider=%s sources=%d duration_ms=%.2f",
+            provider,
+            len(result.get("sources", [])),
+            (perf_counter() - started_at) * 1000,
+        )
+        return result
     except NoDocumentsIndexedError:
         raise HTTPException(
             status_code=400,
             detail="Upload and process a document for this provider before asking a question.",
         ) from None
     except ProviderError as error:
+        logger.warning(
+            "rag.answer.provider_failed provider=%s error_type=%s duration_ms=%.2f",
+            provider,
+            type(error).__name__,
+            (perf_counter() - started_at) * 1000,
+        )
         raise HTTPException(status_code=502, detail=str(error)) from None
-    except Exception:
-        provider = rag_service.openai_adapter.provider.capitalize()
+    except Exception as error:
+        logger.warning(
+            "rag.answer.failed provider=%s error_type=%s status_code=%s duration_ms=%.2f",
+            provider,
+            type(error).__name__,
+            getattr(error, "status_code", None),
+            (perf_counter() - started_at) * 1000,
+        )
         raise HTTPException(
             status_code=502,
-            detail=f"{provider} request failed. Verify your key and try again.",
+            detail=f"{provider.capitalize()} request failed. Verify your key and try again.",
         ) from None
 
 

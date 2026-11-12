@@ -275,15 +275,15 @@ const QuestionForm = () => {
             {loading ? "Processing..." : "Ask question"}
           </button>
         </div>
+        {visibleError && (
+          <p
+            role="alert"
+            className="shrink-0 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+          >
+            {visibleError}
+          </p>
+        )}
       </section>
-      {visibleError && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300 lg:col-span-2"
-        >
-          {visibleError}
-        </p>
-      )}
     </div>
   );
 };

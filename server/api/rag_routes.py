@@ -126,7 +126,7 @@ def generate_answer(
             type(error).__name__,
             (perf_counter() - started_at) * 1000,
         )
-        raise HTTPException(status_code=502, detail=str(error)) from None
+        raise HTTPException(status_code=error.status_code or 502, detail=str(error)) from None
     except Exception as error:
         logger.warning(
             "rag.answer.failed provider=%s error_type=%s status_code=%s duration_ms=%.2f",

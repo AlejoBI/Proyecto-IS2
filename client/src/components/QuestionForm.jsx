@@ -278,7 +278,7 @@ const QuestionForm = () => {
         {visibleError && (
           <p
             role="alert"
-            className="shrink-0 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+            className="max-h-24 shrink-0 overflow-y-auto rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300"
           >
             {visibleError}
           </p>

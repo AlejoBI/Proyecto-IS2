@@ -85,3 +85,24 @@ def test_gemini_adapter_rejects_empty_embedding(monkeypatch):
 
     with pytest.raises(ProviderError, match="empty or invalid embedding"):
         adapter.get_embedding("text")
+
+
+def test_gemini_adapter_generates_with_native_endpoint(monkeypatch):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return b'{"candidates":[{"content":{"parts":[{"text":"answer"}]}}]}'
+
+    monkeypatch.setattr(openai_adapter, "urlopen", lambda *_args, **_kwargs: FakeResponse())
+    adapter = OpenAIAdapter(
+        "gemini-key", "gemini-3.8-flash", "gemini-embedding-001", 100, 0.2,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        provider="gemini",
+    )
+
+    assert adapter.generate_text("question", "context") == "answer"

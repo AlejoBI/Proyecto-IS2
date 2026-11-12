@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -14,9 +15,11 @@ logger = logging.getLogger(__name__)
 class ProviderError(Exception):
     """Error seguro y específico de un proveedor de modelos."""
 
-    def __init__(self, message: str, status_code: int | None = None) -> None:
+    def __init__(self, message: str, status_code: int | None = None,
+                 request_id: str | None = None) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.request_id = request_id
 
 
 class OpenAIAdapter(ports.LlmPort):
@@ -34,6 +37,7 @@ class OpenAIAdapter(ports.LlmPort):
         self._timeout = timeout
         self._base_url = base_url
         self._api_key = api_key
+        self._request_id = "-"
 
     def get_embedding(self, text: str) -> list[float]:
         if not text.strip():
@@ -60,7 +64,7 @@ class OpenAIAdapter(ports.LlmPort):
         request = Request(
             endpoint,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=self._gemini_headers(),
             method="POST",
         )
 
@@ -69,7 +73,18 @@ class OpenAIAdapter(ports.LlmPort):
                 body = json.loads(response.read().decode("utf-8"))
         except HTTPError as error:
             logger.warning("Gemini embedding request failed status=%s", error.code)
-            raise ProviderError(self._gemini_http_error("embedding", error.code), error.code) from None
+            detail = self._read_upstream_error(error)
+            logger.warning(
+                "Gemini embedding upstream_error request_id=%s status=%s detail=%s",
+                self._request_id,
+                error.code,
+                detail,
+            )
+            raise ProviderError(
+                self._gemini_http_error("embedding", error.code),
+                error.code,
+                self._request_id,
+            ) from None
         except (URLError, TimeoutError, json.JSONDecodeError):
             logger.warning("Gemini embedding request could not be completed")
             raise ProviderError("Gemini embedding request failed") from None
@@ -151,7 +166,7 @@ class OpenAIAdapter(ports.LlmPort):
         request = Request(
             endpoint,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=self._gemini_headers(),
             method="POST",
         )
         try:
@@ -163,7 +178,18 @@ class OpenAIAdapter(ports.LlmPort):
                 error.code,
                 self._model,
             )
-            raise ProviderError(self._gemini_http_error("generation", error.code), error.code) from None
+            detail = self._read_upstream_error(error)
+            logger.warning(
+                "Gemini generation upstream_error request_id=%s status=%s detail=%s",
+                self._request_id,
+                error.code,
+                detail,
+            )
+            raise ProviderError(
+                self._gemini_http_error("generation", error.code),
+                error.code,
+                self._request_id,
+            ) from None
         except (URLError, TimeoutError, json.JSONDecodeError):
             logger.warning("Gemini generation request could not be completed model=%s", self._model)
             raise ProviderError("Gemini generation request failed") from None
@@ -177,6 +203,36 @@ class OpenAIAdapter(ports.LlmPort):
         except AttributeError:
             text = ""
         if not text:
-            raise ProviderError("Gemini returned an empty generation")
-        logger.info("llm.generation.completed provider=%s model=%s", self.provider, self._model)
+            logger.warning(
+                "Gemini generation empty_response request_id=%s model=%s candidates=%d",
+                self._request_id,
+                self._model,
+                len(body.get("candidates", [])) if isinstance(body, dict) else 0,
+            )
+            raise ProviderError("Gemini returned an empty generation", request_id=self._request_id)
+        logger.info(
+            "llm.generation.completed provider=%s model=%s request_id=%s",
+            self.provider,
+            self._model,
+            self._request_id,
+        )
         return text
+
+    def _gemini_headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "X-Client-Request-ID": self._request_id,
+        }
+
+    def _read_upstream_error(self, error: HTTPError) -> str:
+        try:
+            raw_body = error.read().decode("utf-8", errors="replace")
+            body = json.loads(raw_body)
+            message = body.get("error", {}).get("message", "")
+            if not message:
+                message = body.get("message", "")
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError):
+            message = ""
+        if not message:
+            message = str(error.reason or "No upstream detail")
+        return re.sub(r"(AIza|sk-)[A-Za-z0-9_-]+", "[REDACTED]", message)[:300]

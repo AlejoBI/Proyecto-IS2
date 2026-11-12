@@ -1,10 +1,11 @@
 import hashlib
 import logging
 from time import perf_counter
+from uuid import uuid4
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from server.api import dependencies
@@ -87,6 +88,7 @@ def generate_answer(
     session: SessionContext = Depends(dependencies.get_rate_limit),
     rag_service: usecases.RAGService = Depends(dependencies.get_rag_service),
     current_user: Optional[dict] = Depends(dependencies.get_optional_user),
+    response: Response = None,
 ) -> AnswerResponse:
     configs = configurations.Settings()
     if len(query) > configs.MAX_QUERY_LENGTH:
@@ -95,10 +97,15 @@ def generate_answer(
     if not sessions.mongo.increment_question_count(session.id, configs.MAX_QUESTIONS_PER_SESSION):
         raise HTTPException(status_code=429, detail="The question limit for this session was reached")
     provider = rag_service.openai_adapter.provider
+    request_id = uuid4().hex[:12]
+    rag_service.openai_adapter._request_id = request_id
+    if response:
+        response.headers["X-Request-ID"] = request_id
     started_at = perf_counter()
     logger.info(
-        "rag.answer.request.started provider=%s authenticated=%s query_length=%d",
+        "rag.answer.request.started provider=%s request_id=%s authenticated=%s query_length=%d",
         provider,
+        request_id,
         bool(current_user),
         len(query),
     )
@@ -108,8 +115,9 @@ def generate_answer(
             query, session_id=session.id, owner_email=owner_email, provider=provider
         )
         logger.info(
-            "rag.answer.request.completed provider=%s sources=%d duration_ms=%.2f",
+            "rag.answer.request.completed provider=%s request_id=%s sources=%d duration_ms=%.2f",
             provider,
+            request_id,
             len(result.get("sources", [])),
             (perf_counter() - started_at) * 1000,
         )
@@ -121,23 +129,34 @@ def generate_answer(
         ) from None
     except ProviderError as error:
         logger.warning(
-            "rag.answer.provider_failed provider=%s error_type=%s duration_ms=%.2f",
+            "rag.answer.provider_failed provider=%s request_id=%s error_type=%s status_code=%s duration_ms=%.2f",
             provider,
+            request_id,
             type(error).__name__,
+            error.status_code,
             (perf_counter() - started_at) * 1000,
         )
-        raise HTTPException(status_code=error.status_code or 502, detail=str(error)) from None
+        detail = str(error)
+        if error.request_id:
+            detail = f"{detail}. Request ID: {error.request_id}"
+        raise HTTPException(
+            status_code=error.status_code or 502,
+            detail=detail,
+            headers={"X-Request-ID": request_id},
+        ) from None
     except Exception as error:
         logger.warning(
-            "rag.answer.failed provider=%s error_type=%s status_code=%s duration_ms=%.2f",
+            "rag.answer.failed provider=%s request_id=%s error_type=%s status_code=%s duration_ms=%.2f",
             provider,
+            request_id,
             type(error).__name__,
             getattr(error, "status_code", None),
             (perf_counter() - started_at) * 1000,
         )
         raise HTTPException(
             status_code=502,
-            detail=f"{provider.capitalize()} request failed. Verify your key and try again.",
+            detail=f"{provider.capitalize()} request failed. Request ID: {request_id}",
+            headers={"X-Request-ID": request_id},
         ) from None
 
 

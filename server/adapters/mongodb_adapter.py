@@ -138,9 +138,21 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         self.documents.update_one({"id": document_id}, {"$set": {"status": status.value}})
 
     def document_exists(self, session_id: str, checksum: str) -> bool:
-        return self.documents.find_one(
-            {"session_id": session_id, "checksum": checksum}, {"_id": 1}
-        ) is not None
+        document = self.documents.find_one(
+            {"session_id": session_id, "checksum": checksum},
+            {"_id": 1, "status": 1},
+        )
+        if not document:
+            return False
+
+        # A failed processing attempt must not block a retry. The unique index
+        # on session/checksum requires removing the failed record before the
+        # next upload can create its new document record.
+        if document.get("status") == models.DocumentStatus.FAILED.value:
+            self.documents.delete_one({"_id": document["_id"]})
+            return False
+
+        return True
 
     def get_document(self, id: str) -> Optional[models.Document]:
         document = self.documents.find_one({"id": id})

@@ -8,6 +8,7 @@ from server.core.models import Document
 from server.core import ports
 from server.services.rate_limiter import InMemoryRateLimiter
 from server.services.sessions import SessionService
+from server.adapters.mongodb_adapter import MongoDBAdapter
 
 
 def test_rate_limiter_rejects_burst():
@@ -74,3 +75,23 @@ def test_session_cleanup_removes_expired_resources():
     assert result == {"sessions": 1, "documents": 1, "vectors": 3, "files": 0}
     chroma.delete_document.assert_called_once_with("doc-1")
     chroma.delete_expired_sessions.assert_called_once()
+
+
+def test_failed_document_does_not_block_upload_retry():
+    documents = MagicMock()
+    documents.find_one.return_value = {"_id": "failed-id", "status": "failed"}
+    adapter = MongoDBAdapter.__new__(MongoDBAdapter)
+    adapter.documents = documents
+
+    assert adapter.document_exists("session-1", "checksum") is False
+    documents.delete_one.assert_called_once_with({"_id": "failed-id"})
+
+
+def test_completed_document_still_blocks_duplicate_upload():
+    documents = MagicMock()
+    documents.find_one.return_value = {"_id": "completed-id", "status": "completed"}
+    adapter = MongoDBAdapter.__new__(MongoDBAdapter)
+    adapter.documents = documents
+
+    assert adapter.document_exists("session-1", "checksum") is True
+    documents.delete_one.assert_not_called()

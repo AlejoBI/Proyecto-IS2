@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
@@ -54,7 +54,9 @@ def login_user(
 
 
 @auth_router.get("/checkauth", status_code=200)
-def check_auth(current_user: dict = Depends(dependencies.get_current_user)) -> Dict[str, Any]:
+def check_auth(current_user: Optional[dict] = Depends(dependencies.get_optional_user)) -> Dict[str, Any]:
+    if not current_user:
+        return {"status": "Unauthenticated"}
     return {"status": "Authenticated", "user": current_user}
 
 

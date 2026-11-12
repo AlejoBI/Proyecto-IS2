@@ -66,7 +66,11 @@ const QuestionForm = () => {
           <select
             id="llm-provider"
             value={provider}
-            onChange={(event) => setProvider(event.target.value)}
+            onChange={(event) => {
+              setProvider(event.target.value);
+              setApiKey("");
+              setShowApiKey(false);
+            }}
             className={inputClass}
           >
             <option value="openai">OpenAI</option>

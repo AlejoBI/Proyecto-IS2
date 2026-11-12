@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRag } from "../hooks/useRag";
 import { useRagSession } from "../hooks/useRagSession";
+import DemoNotice from "./DemoNotice";
 
 const inputClass =
   "mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
@@ -67,6 +68,7 @@ const QuestionForm = () => {
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]">
       <aside className="space-y-6 lg:min-w-0">
+        <DemoNotice compact />
         <div>
           <label htmlFor="llm-provider" className="text-sm font-semibold text-slate-200">
             AI provider

@@ -2,6 +2,7 @@ import QuestionForm from "../components/QuestionForm";
 import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import DemoNotice from "../components/DemoNotice";
 
 const HomePage = () => {
   const { isAuthenticated, user } = useAuth();
@@ -28,6 +29,7 @@ const HomePage = () => {
           stored by this application.
         </p>
       </header>
+      <DemoNotice />
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl sm:p-8">
         <QuestionForm />
       </section>

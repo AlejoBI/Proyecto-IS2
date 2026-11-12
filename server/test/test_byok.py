@@ -106,3 +106,17 @@ def test_gemini_adapter_generates_with_native_endpoint(monkeypatch):
     )
 
     assert adapter.generate_text("question", "context") == "answer"
+
+
+def test_openai_quota_error_is_actionable():
+    adapter = OpenAIAdapter("openai-key", "model", "embedding", 100, 0.2)
+    error = SimpleNamespace(
+        status_code=429,
+        body={"code": "insufficient_quota"},
+    )
+
+    provider_error = adapter._openai_provider_error("generation", error)
+
+    assert provider_error.status_code == 429
+    assert "no remaining credits" in str(provider_error)
+    assert "switch to Gemini" in str(provider_error)

@@ -246,7 +246,12 @@ async def save_document(
             {"$inc": {"document_count": -1, "storage_used": -len(payload)}}
         )
         message = result.get("message", result.get("status", "Document processing failed"))
-        status_code = 401 if "401" in message or "invalid_api_key" in message else 400
+        if "no remaining credits" in message.lower():
+            status_code = 429
+        elif "rate limit" in message.lower():
+            status_code = 429
+        else:
+            status_code = 401 if "401" in message or "invalid_api_key" in message else 400
         provider_name = provider.capitalize()
         raise HTTPException(status_code=status_code,
                             detail=f"{provider_name} rejected the supplied key"

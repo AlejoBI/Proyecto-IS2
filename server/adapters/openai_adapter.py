@@ -46,10 +46,13 @@ class OpenAIAdapter(ports.LlmPort):
         if self.provider == "gemini":
             return self._get_gemini_embedding(text)
 
-        response = self._openai_client.embeddings.create(
-            input=text,
-            model=self._embedding_model,
-        )
+        try:
+            response = self._openai_client.embeddings.create(
+                input=text,
+                model=self._embedding_model,
+            )
+        except Exception as error:
+            raise self._openai_provider_error("embedding", error) from None
         embedding = response.data[0].embedding
         self._validate_embedding(embedding)
         return embedding
@@ -144,9 +147,34 @@ class OpenAIAdapter(ports.LlmPort):
                 type(error).__name__,
                 getattr(error, "status_code", None),
             )
-            raise
+            raise self._openai_provider_error("generation", error) from None
         logger.info("llm.generation.completed provider=%s model=%s", self.provider, self._model)
         return response.choices[0].message.content
+
+    def _openai_provider_error(self, operation: str, error: Exception) -> ProviderError:
+        status_code = getattr(error, "status_code", None)
+        body = getattr(error, "body", None)
+        error_code = body.get("code") if isinstance(body, dict) else None
+        raw_error = str(error).lower()
+
+        if status_code == 429 and (
+            error_code in {"insufficient_quota", "credit_balance_exhausted"}
+            or "insufficient_quota" in raw_error
+            or "credit_balance_exhausted" in raw_error
+        ):
+            return ProviderError(
+                "OpenAI has no remaining credits. Add credits at "
+                "https://platform.openai.com/settings/organization/billing/ "
+                "or switch to Gemini.",
+                429,
+            )
+        if status_code == 429:
+            return ProviderError("OpenAI rate limit reached. Try again shortly.", 429)
+        if status_code in {401, 403}:
+            return ProviderError("OpenAI rejected the API key. Verify it and try again.", status_code)
+        if status_code and status_code >= 500:
+            return ProviderError("OpenAI is temporarily unavailable. Try again shortly.", status_code)
+        return ProviderError(f"OpenAI {operation} request failed. Verify your key and try again.", status_code)
 
     def _generate_gemini_text(self, prompt: str, retrieval_context: str) -> str:
         endpoint = self._gemini_endpoint(self._model, "generateContent")

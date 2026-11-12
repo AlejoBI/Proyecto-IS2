@@ -8,6 +8,36 @@
 4. Mantener `OPENAI_API_KEY` vacío en modo BYOK; las claves llegan por solicitud.
 5. Configurar `REACT_VITE_CONNECTION` con el origen real del frontend.
 
+## Entornos y plantillas de variables
+
+El repositorio incluye plantillas seguras, sin credenciales reales:
+
+| Entorno | Backend | Frontend | Uso |
+|---|---|---|---|
+| `develop` | `.env.develop.example` | `client/.env.develop.example` | Desarrollo local o staging. |
+| `production` | `.env.production.example` | `client/.env.production.example` | Render + Cloudflare Pages. |
+| local genérico | `.env.example` | `client/.env` | Configuración base local. |
+
+Para trabajar localmente, copiar la plantilla correspondiente a `.env` en la
+raíz y la plantilla del frontend a `client/.env`:
+
+```powershell
+Copy-Item .env.develop.example .env
+Copy-Item client/.env.develop.example client/.env
+```
+
+No se deben subir `.env`, API keys, contraseñas ni secretos. En Render y
+Cloudflare las variables se configuran desde sus respectivos paneles; las
+plantillas solo sirven como referencia y checklist.
+
+Las diferencias importantes son:
+
+- `develop` usa localhost, cookies `lax` y almacenamiento local.
+- `production` usa HTTPS, cookies `none` + `secure`, MongoDB Atlas y el backend
+  de Render.
+- El frontend de Cloudflare solo necesita `VITE_API_URL`; nunca debe recibir
+  `OPENAI_API_KEY` ni `GEMINI_API_KEY`.
+
 ## Local
 
 ```powershell
@@ -141,7 +171,7 @@ Configurar el health check como:
 No usar `/health` como única comprobación de producción: `/health` confirma que
 el proceso vive, mientras `/ready` verifica la conexión con MongoDB.
 
-#### Disco persistente
+#### Disco persistente en un plan pago
 
 ChromaDB y los archivos cargados deben escribirse en un disco persistente de
 Render. Crear un disk con:
@@ -151,7 +181,35 @@ Mount path: /var/data
 ```
 
 Usar un plan de Render que soporte persistent disks. Los planes gratuitos no
-son adecuados para conservar ChromaDB y archivos entre despliegues.
+conservan ChromaDB ni archivos entre despliegues.
+
+#### Despliegue gratuito sin Persistent Disk
+
+Para una demo con Render Free y MongoDB Atlas Free no es necesario bloquear el
+despliegue por no tener disco. Usar en Render:
+
+```env
+CHROMA_PATH=/tmp/chroma_data
+MEDIA_PATH=/tmp/media
+BACKUP_DIR=/tmp/backups
+```
+
+MongoDB conserva los usuarios, el texto extraído, metadatos e historial. El
+filesystem de Render es efímero, por lo que ChromaDB y los archivos locales se
+pueden perder al reiniciar o redeployar. Cuando el backend recibe una pregunta,
+puede volver a generar los embeddings usando el contenido almacenado en
+MongoDB; la primera consulta después de un reinicio puede ser más lenta y
+consumir embeddings nuevamente.
+
+Esta modalidad es adecuada para una demo o portafolio, no para producción con
+garantías de persistencia. Para producción real, agregar el disk en `/var/data`
+y cambiar las rutas a:
+
+```env
+CHROMA_PATH=/var/data/chroma_data
+MEDIA_PATH=/var/data/media
+BACKUP_DIR=/var/data/backups
+```
 
 #### Variables de entorno del backend
 

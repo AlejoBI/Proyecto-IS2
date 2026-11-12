@@ -70,6 +70,7 @@ OpenAI puede reindexarse para Gemini sin volver a cargar el archivo.
 - [Ciclo de vida de sesiones](docs/SESSION_LIFECYCLE.md)
 - [Evaluación](docs/RAG_EVALUATION.md)
 - [Despliegue](docs/DEPLOYMENT.md)
+- [Variables por entorno](docs/DEPLOYMENT.md#entornos-y-plantillas-de-variables)
 - [Migración de ChromaDB](docs/CHROMA_MIGRATION.md)
 - [Estado del proyecto](docs/PROJECT_STATUS.md)
 

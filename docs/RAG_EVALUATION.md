@@ -1,13 +1,15 @@
 # Evaluación del RAG
 
-La evaluación automática de un proveedor OpenAI real no se ejecuta en CI para
-no consumir créditos ni exponer credenciales. El flujo de CI usa adaptadores
+La evaluación automática contra proveedores reales no se ejecuta en CI para no
+consumir créditos ni exponer credenciales. El flujo de CI usa adaptadores
 simulados para comprobar:
 
 - que la API key del usuario se inyecta por solicitud;
 - que la búsqueda recibe el `session_id` correcto;
 - que la respuesta incluye fuentes;
 - que los errores del proveedor no se exponen al cliente.
+- que OpenAI y Gemini mantienen índices vectoriales separados.
+- que un documento puede reindexarse sin volver a cargar el archivo.
 
 ## Evaluación manual con una clave propia
 

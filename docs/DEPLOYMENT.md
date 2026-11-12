@@ -5,7 +5,7 @@
 1. Copiar `.env.example` a `.env`.
 2. Definir `SECRET_ACCESS_TOKEN` con un secreto aleatorio.
 3. Definir `MONGODB_URI` con una instancia persistente y autenticada.
-4. Mantener `OPENAI_API_KEY` vacío en modo BYOK.
+4. Mantener `OPENAI_API_KEY` vacío en modo BYOK; las claves llegan por solicitud.
 5. Configurar `REACT_VITE_CONNECTION` con el origen real del frontend.
 
 ## Local
@@ -59,6 +59,10 @@ de embeddings incompatibles.
 Los usuarios autenticados conservan sus documentos en MongoDB y pueden
 recuperar su historial mediante `/me/documents` y `/me/history`. Las sesiones
 anónimas siguen siendo temporales y sus datos se limpian automáticamente.
+
+Para OpenAI se configuran `MODEL` y `EMBEDDING_MODEL`. El modelo de generación
+puede cambiarse desde `.env` sin modificar el código; las API keys de usuario
+no deben ponerse en variables `VITE_*` ni versionarse.
 
 ## Operación
 

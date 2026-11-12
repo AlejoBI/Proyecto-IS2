@@ -2,22 +2,22 @@
 
 ## Bring Your Own Key (BYOK)
 
-La demo pública no usa una clave de OpenAI del servidor. El usuario escribe su
-propia clave en el navegador y el cliente la envía en el encabezado
-`X-OpenAI-API-Key` únicamente en las operaciones de carga y consulta.
+La demo pública no usa una clave de proveedor del servidor. El usuario escribe
+su propia clave en el navegador y el cliente la envía en `X-LLM-API-Key`, junto
+con `X-LLM-Provider`, únicamente en carga, consulta e indexación.
 
 La API:
 
 - no guarda la clave en MongoDB, ChromaDB, cookies ni archivos;
 - no la imprime en logs;
-- crea un cliente OpenAI nuevo para cada solicitud;
+    - crea un cliente del proveedor seleccionado para cada solicitud;
 - devuelve los errores del proveedor sin incluir la clave completa.
 
 Las rutas administrativas requieren una cookie JWT válida cuyo token incluya
 el rol `admin`. El registro público siempre crea usuarios con rol `user`.
 
 La clave permanece en el estado de React y se pierde al recargar la página.
-El usuario debe asumir el costo y los permisos de su cuenta de OpenAI.
+El usuario debe asumir el costo y los permisos de su cuenta del proveedor.
 
 ## Límites de abuso
 

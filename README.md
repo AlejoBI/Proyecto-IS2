@@ -1,74 +1,84 @@
-# Proyecto - IS2
+# Proyecto IS2 — Plataforma RAG
 
-El frontend utiliza React, Vite y Tailwind CSS; el backend utiliza FastAPI,
-MongoDB y ChromaDB.
-*Miembros:*
-- Ludy Astrid Agudelo - 2221008
-- Juan Diego Cortes - 2215750
-- Juan David Borrero - 2215284
-- Alejandro Bravo Isajar - 2220332
+Plataforma web para cargar documentos PDF, DOCX o TXT y hacer preguntas sobre
+su contenido con respuestas acompañadas de fuentes. El usuario puede elegir
+OpenAI o Google Gemini por solicitud; las claves se entregan mediante BYOK
+(Bring Your Own Key) y no se almacenan.
 
-# Configuración
-*Configurar el ambiente virtual:*
+## Equipo
 
-Dentro del directorio Server ejecutar el siguiente comando:
-`conda create --name myenvPS2(Este nombre es el que quiera) python=3.12`
+- Ludy Astrid Agudelo — 2221008
+- Juan Diego Cortes — 2215750
+- Juan David Borrero — 2215284
+- Alejandro Bravo Isajar — 2220332
 
-Luego activar el ambiente virtual con el siguiente comando:
-`conda activate myenvPS2` (Este nombre es el que se puso al crearlo)
+## Stack
 
-Una vez ya activo el ambiente virtual, instalar las dependencias con el siguiente comando:
-`poetry install`
+- **Frontend:** React, Vite, Axios y Tailwind CSS.
+- **Backend:** Python 3.12, FastAPI, Pydantic y Uvicorn.
+- **Persistencia:** MongoDB para usuarios, documentos, sesiones e historial.
+- **Búsqueda semántica:** ChromaDB para embeddings y recuperación vectorial.
+- **Límites distribuidos opcionales:** Redis.
+- **Proveedores LLM:** OpenAI y Gemini, seleccionables por solicitud.
 
-Listo 👍👍
+## Inicio rápido
 
-# Dependencias 
-*Poetry add dependencie:*
-
-- `python=3.12`: Es la versión del lenguaje de programación Python que se está utilizando. Python es conocido por su simplicidad y legibilidad.
-- `pydantic`: Es una biblioteca de validación de datos y configuración en Python. Permite definir modelos de datos con validación automática y conversión de tipos.
-- `fastapi`: Es un framework web moderno y de alto rendimiento para construir APIs con Python 3.6+ basado en las anotaciones de tipo estándar de Python.
-- `uvicorn`: Es un servidor ASGI (Asynchronous Server Gateway Interface) rápido y ligero, utilizado para ejecutar aplicaciones web asíncronas en Python, como las construidas con FastAPI.
-- `openai`: Es una biblioteca de Python que permite interactuar con la API de OpenAI. Esta API proporciona acceso a modelos avanzados de inteligencia artificial para tareas como generación de texto, traducción, resumen, y más.
-- `chromadb`: Es una biblioteca de Python para trabajar con bases de datos de series temporales y datos de series temporales. Facilita el almacenamiento, consulta y análisis de grandes volúmenes de datos temporales.
-- `pydantic_settings`: Es una configuración o instancia de un modelo de Pydantic. Pydantic es una biblioteca de validación de datos y configuración en Python que permite definir modelos de datos con validación automática y conversión de tipos.
-
-## RAG implementado
-
-El proyecto incluye un flujo RAG funcional compuesto por:
-
-1. Carga de archivos PDF, DOCX y TXT mediante FastAPI.
-2. Extracción y limpieza del texto.
-3. Fragmentación por tokens con `tiktoken`.
-4. Generación de embeddings mediante OpenAI.
-5. Persistencia y búsqueda semántica de fragmentos en ChromaDB.
-6. Recuperación de contexto y generación de respuestas mediante OpenAI.
-7. Persistencia de documentos y metadatos en MongoDB.
-
-La colección de ChromaDB se guarda localmente en `./chroma_data`. Para iniciar el backend, define las variables del archivo `.env` y ejecuta:
-
-```bash
-poetry install
-poetry run uvicorn server.main:app --reload
+```powershell
+copy .env.example .env
+docker compose up --build -d
+curl.exe http://localhost:8000/health
+curl.exe http://localhost:8000/ready
 ```
 
-Endpoints principales:
+Para desarrollo local:
 
-- `POST /save-document`: carga y vectoriza un documento.
-- `GET /generate-answer?query=...`: recupera los fragmentos más relevantes y genera una respuesta con fuentes.
-- `GET /get-vectors`: consulta los vectores almacenados (solo administración).
-- `GET /session`: crea o recupera una sesión temporal y devuelve sus límites.
+```powershell
+poetry install
+poetry run uvicorn server.main:app --reload
+cd client
+npm install
+npm run dev
+```
 
-## Demo pública BYOK
+La configuración completa está en [Despliegue](docs/DEPLOYMENT.md).
 
-La demo usa el modelo **Bring Your Own Key**: cada visitante proporciona su
-propia clave de OpenAI desde el frontend. La clave viaja únicamente en
-`X-OpenAI-API-Key` durante la solicitud y no se almacena.
+## Cómo funciona
 
-Las sesiones son anónimas y temporales. Los documentos, vectores y archivos se
-asocian a una sesión, tienen límites de tamaño/cantidad y se eliminan
-automáticamente cuando la sesión vence. Consulta la documentación detallada:
+1. El navegador crea una sesión y carga un documento.
+2. El backend valida el archivo, extrae el texto, lo divide en fragmentos y
+   genera embeddings con el proveedor seleccionado.
+3. Los fragmentos se guardan en ChromaDB y los metadatos en MongoDB.
+4. Una pregunta recupera fragmentos de la sesión y proveedor actuales y envía
+   ese contexto al modelo generativo.
+5. La respuesta vuelve con sus fuentes y, para usuarios autenticados, se guarda
+   en el historial.
 
-- [Seguridad y límites](docs/SECURITY.md)
-- [Ciclo de vida y limpieza](docs/SESSION_LIFECYCLE.md)
+Cada proveedor usa su propio espacio vectorial. Un documento procesado para
+OpenAI puede reindexarse para Gemini sin volver a cargar el archivo.
+
+## Documentación
+
+- [Arquitectura](docs/ARCHITECTURE.md)
+- [Flujo RAG](docs/RAG_FLOW.md)
+- [Componentes](docs/COMPONENTS.md)
+- [Patrones de diseño](docs/DESIGN_PATTERNS.md)
+- [Prácticas de ingeniería](docs/ENGINEERING_PRACTICES.md)
+- [API](docs/API.md)
+- [Observabilidad y diagnóstico](docs/OBSERVABILITY.md)
+- [Seguridad](docs/SECURITY.md)
+- [Ciclo de vida de sesiones](docs/SESSION_LIFECYCLE.md)
+- [Evaluación](docs/RAG_EVALUATION.md)
 - [Despliegue](docs/DEPLOYMENT.md)
+- [Migración de ChromaDB](docs/CHROMA_MIGRATION.md)
+- [Estado del proyecto](docs/PROJECT_STATUS.md)
+
+## Calidad
+
+```powershell
+python -m compileall -q server
+poetry run pytest -q
+cd client
+npm run lint
+npm run format:check
+npm run build
+```

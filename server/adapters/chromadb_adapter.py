@@ -4,6 +4,11 @@ from typing import List, Optional, Any
 from server.core import ports
 from server.core import models
 from server.helpers.vectorize_document import chunk_text, get_openai_embeddings
+from server.adapters.openai_adapter import ProviderError
+
+
+class NoDocumentsIndexedError(Exception):
+    """No hay documentos disponibles para la sesión y proveedor solicitados."""
 
 
 class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
@@ -25,7 +30,13 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
     def save_document(self, document: models.Document, content: str, openai_client: Any,
                       provider: str = "openai") -> None:
         chunks = chunk_text(content, max_tokens=self._chunk_size_tokens)
+        if not chunks:
+            raise ValueError("The document does not contain extractable text")
         embeddings = [get_openai_embeddings(chunk, openai_client) for chunk in chunks]
+        if not embeddings or any(not embedding for embedding in embeddings):
+            raise ProviderError(
+                f"{provider.capitalize()} returned an empty embedding"
+            )
         ids = [f"{document.id}:{index}" for index in range(len(chunks))]
 
         self._get_collection(provider).upsert(
@@ -48,10 +59,7 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
         if not n_results:
             n_results = self._number_of_vectorial_results
 
-        query_embedding = get_openai_embeddings(query, openai_client)
-
         kwargs = {
-            "query_embeddings": [query_embedding],
             "n_results": n_results,
             "include": ["documents", "metadatas", "distances"],
         }
@@ -59,7 +67,20 @@ class ChromaDBAdapter(ports.DocumentRepositoryPort, ABC):
             kwargs["where"] = {"owner_email": owner_email}
         elif session_id:
             kwargs["where"] = {"session_id": session_id}
-        results = self._get_collection(provider).query(**kwargs)
+        collection = self._get_collection(provider)
+        indexed = collection.get(
+            where=kwargs.get("where"), include=["metadatas"]
+        ) if kwargs.get("where") else collection.get(include=["metadatas"])
+        if not indexed.get("ids", []):
+            raise NoDocumentsIndexedError(
+                "No documents are indexed for this session and provider"
+            )
+
+        query_embedding = get_openai_embeddings(query, openai_client)
+        if not query_embedding:
+            raise ProviderError(f"{provider.capitalize()} returned an empty embedding")
+        kwargs["query_embeddings"] = [query_embedding]
+        results = collection.query(**kwargs)
 
         documents = []
         ids = results.get("ids", [[]])[0]

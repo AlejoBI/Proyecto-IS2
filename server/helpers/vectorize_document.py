@@ -16,6 +16,8 @@ def get_openai_embeddings(text: str, openai_client: Any) -> list[float]:
 
 def document_to_vectors(content: str, openai_client: Any) -> list[list[float]]:
     chunks = chunk_text(content, max_tokens=2048)
+    if not chunks:
+        raise ValueError("The document does not contain extractable text")
     content_vectors = [get_openai_embeddings(chunk, openai_client) for chunk in chunks]
     return content_vectors
 
@@ -25,5 +27,5 @@ def chunk_text(text: str, max_tokens: int) -> list[str]:
     tokens = tokenizer.encode(text)
 
     chunks = [tokens[i:i + max_tokens] for i in range(0, len(tokens), max_tokens)]
-    chunk_texts = [tokenizer.decode(chunk) for chunk in chunks]
+    chunk_texts = [tokenizer.decode(chunk) for chunk in chunks if chunk]
     return chunk_texts

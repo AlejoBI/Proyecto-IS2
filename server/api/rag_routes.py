@@ -10,6 +10,8 @@ from server.api.schemas import AnswerResponse, DocumentOperationResponse
 from server.core.models import DocumentStatus
 from server.app import configurations, usecases
 from server.services.sessions import SessionContext
+from server.adapters.chromadb_adapter import NoDocumentsIndexedError
+from server.adapters.openai_adapter import ProviderError
 
 
 rag_router = APIRouter()
@@ -48,9 +50,19 @@ def generate_answer(
         return rag_service.generate_answer_with_sources(
             query, session_id=session.id, owner_email=owner_email, provider=provider
         )
+    except NoDocumentsIndexedError:
+        raise HTTPException(
+            status_code=400,
+            detail="Upload and process a document for this provider before asking a question.",
+        ) from None
+    except ProviderError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from None
     except Exception:
-        raise HTTPException(status_code=502,
-                            detail="OpenAI request failed. Verify your key and try again.") from None
+        provider = rag_service.openai_adapter.provider.capitalize()
+        raise HTTPException(
+            status_code=502,
+            detail=f"{provider} request failed. Verify your key and try again.",
+        ) from None
 
 
 @rag_router.post("/save-document", status_code=201, response_model=DocumentOperationResponse)
@@ -99,8 +111,10 @@ async def save_document(
         )
         message = result.get("message", result.get("status", "Document processing failed"))
         status_code = 401 if "401" in message or "invalid_api_key" in message else 400
+        provider_name = provider.capitalize()
         raise HTTPException(status_code=status_code,
-                            detail="OpenAI rejected the supplied key" if status_code == 401 else message)
+                            detail=f"{provider_name} rejected the supplied key"
+                            if status_code == 401 else message)
     return {
         "status": DocumentStatus.COMPLETED,
         "document_id": result.get("document_id"),

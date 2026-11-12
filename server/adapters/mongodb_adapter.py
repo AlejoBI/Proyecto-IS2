@@ -122,6 +122,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
                                 expires_at=self._expiry_as_string(document.get("expires_at")),
                                 checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
                                 provider=document.get("provider"),
+                                indexed_providers=document.get("indexed_providers", []),
                                 created_at=self._expiry_as_string(document.get("created_at")),
                                 status=document.get("status", "completed"))
                 for document in documents]
@@ -135,6 +136,8 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
              "session_id": document.session_id, "expires_at": expires_at,
              "checksum": document.checksum, "size_bytes": document.size_bytes,
              "provider": document.provider, "status": document.status.value,
+             "indexed_providers": document.indexed_providers or ([document.provider]
+                                                                  if document.provider else []),
              "owner_email": document.owner_email,
              "created_at": datetime.now(timezone.utc)})
 
@@ -168,6 +171,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
                                    expires_at=self._expiry_as_string(document.get("expires_at")),
                                    checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
                                    provider=document.get("provider"),
+                                   indexed_providers=document.get("indexed_providers", []),
                                    created_at=self._expiry_as_string(document.get("created_at")),
                                    status=document.get("status", "completed"))
         return None
@@ -181,6 +185,7 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             expires_at=self._expiry_as_string(document.get("expires_at")),
             checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
             provider=document.get("provider"),
+            indexed_providers=document.get("indexed_providers", []),
             created_at=self._expiry_as_string(document.get("created_at")),
             status=document.get("status", "completed"),
         ) for document in documents]
@@ -194,9 +199,16 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             expires_at=self._expiry_as_string(document.get("expires_at")),
             checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
             provider=document.get("provider"),
+            indexed_providers=document.get("indexed_providers", []),
             created_at=self._expiry_as_string(document.get("created_at")),
             status=document.get("status", "completed"),
         ) for document in documents]
+
+    def add_document_provider(self, document_id: str, provider: str) -> None:
+        self.documents.update_one(
+            {"id": document_id},
+            {"$addToSet": {"indexed_providers": provider}},
+        )
 
     def save_question_history(self, email: str, question: str, answer: str,
                               sources: list[dict], provider: str = "openai") -> None:

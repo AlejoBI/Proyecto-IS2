@@ -59,6 +59,13 @@ export const deleteSessionDocumentRequest = async (documentId) => {
   return res.data;
 };
 
+export const indexSessionDocumentRequest = async (documentId, apiKey, provider) => {
+  const res = await axios.post(`/session/documents/${documentId}/index`, null, {
+    headers: { "X-LLM-API-Key": apiKey, "X-LLM-Provider": provider },
+  });
+  return res.data;
+};
+
 export const getMyHistoryRequest = async () => {
   const res = await axios.get(`/me/history`);
   return res.data;

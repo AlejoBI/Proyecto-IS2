@@ -3,6 +3,7 @@ import {
   generateAnswerRequest,
   getSessionDocumentsRequest,
   deleteSessionDocumentRequest,
+  indexSessionDocumentRequest,
   getMyHistoryRequest,
   uploadDocumentRequest,
 } from "../api/auth";
@@ -68,6 +69,25 @@ export const useRag = () => {
     }
   };
 
+  const indexDocument = async (documentId, apiKey, provider) => {
+    if (!apiKey.trim()) {
+      const message = "Enter your provider API key first.";
+      setError(message);
+      throw new Error(message);
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await indexSessionDocumentRequest(documentId, apiKey.trim(), provider);
+      setDocuments(await getSessionDocumentsRequest());
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Error indexing document.");
+      throw requestError;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const askQuestion = async (question, apiKey, provider) => {
     if (!question.trim() || !apiKey.trim()) throw new Error("Enter your API key and a question.");
     setLoading(true);
@@ -101,5 +121,6 @@ export const useRag = () => {
     uploadDocument,
     askQuestion,
     deleteDocument,
+    indexDocument,
   };
 };

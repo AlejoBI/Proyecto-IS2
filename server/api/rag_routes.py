@@ -27,6 +27,7 @@ def _document_summary(document) -> Dict[str, Any]:
         "title": document.title,
         "status": document.status.value,
         "provider": document.provider,
+        "indexed_providers": document.indexed_providers,
         "size_bytes": document.size_bytes,
         "created_at": document.created_at,
         "checksum": document.checksum[:12] if document.checksum else None,
@@ -80,6 +81,46 @@ def delete_session_document(
         {"$inc": {"document_count": -1, "storage_used": -(document.size_bytes or 0)}},
     )
     return {"status": "Document deleted"}
+
+
+@rag_router.post("/session/documents/{document_id}/index", status_code=200)
+async def index_session_document(
+    document_id: str,
+    session: SessionContext = Depends(dependencies.get_session_context),
+    rag_service: usecases.RAGService = Depends(dependencies.get_rag_service),
+    current_user: Optional[dict] = Depends(dependencies.get_optional_user),
+) -> Dict[str, Any]:
+    mongo, chroma, _, _ = dependencies.InfrastructureSingleton.get()
+    document = next(
+        (item for item in mongo.get_session_documents(session.id) if item.id == document_id),
+        None,
+    )
+    if not document or (current_user and document.owner_email != current_user.get("sub")):
+        raise HTTPException(status_code=404, detail="Document not found in this session")
+    if document.status != DocumentStatus.COMPLETED or not document.content:
+        raise HTTPException(status_code=400, detail="Document is not ready for indexing")
+
+    provider = rag_service.openai_adapter.provider
+    if not chroma.has_document(document.id, provider):
+        try:
+            await run_in_threadpool(
+                chroma.save_document,
+                document,
+                document.content,
+                rag_service.openai_adapter,
+                provider,
+            )
+            mongo.add_document_provider(document.id, provider)
+        except ProviderError as error:
+            raise HTTPException(
+                status_code=error.status_code or 502,
+                detail=str(error),
+            ) from None
+    return {
+        "status": "Document indexed successfully",
+        "document_id": document.id,
+        "provider": provider,
+    }
 
 
 @rag_router.get("/generate-answer", status_code=200)

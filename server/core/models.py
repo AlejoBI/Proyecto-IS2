@@ -27,6 +27,7 @@ class Document(pydantic.BaseModel):
     checksum: Optional[str] = None
     size_bytes: Optional[int] = None
     provider: Optional[str] = None
+    indexed_providers: list[str] = pydantic.Field(default_factory=list)
     created_at: Optional[str] = None
     status: DocumentStatus = DocumentStatus.COMPLETED
     similarity: Optional[float] = None

@@ -37,6 +37,7 @@ const QuestionForm = () => {
     uploadDocument,
     askQuestion,
     deleteDocument,
+    indexDocument,
   } = useRag();
   const visibleError = sessionError || error;
 
@@ -51,6 +52,13 @@ const QuestionForm = () => {
     try {
       await askQuestion(question, apiKey, provider);
       setQuestion("");
+    } catch {
+      /* hook exposes the user-facing error */
+    }
+  };
+  const handleIndex = async (documentId) => {
+    try {
+      await indexDocument(documentId, apiKey, provider);
     } catch {
       /* hook exposes the user-facing error */
     }
@@ -177,11 +185,7 @@ const QuestionForm = () => {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       <span className="rounded-full bg-slate-800 px-2.5 py-1">
-                        {document.provider === "gemini"
-                          ? "Google Gemini"
-                          : document.provider === "openai"
-                            ? "OpenAI"
-                            : "Provider not recorded"}
+                        Indexed: {document.indexed_providers?.join(", ") || "Not indexed"}
                       </span>
                       {document.status === "completed" ? (
                         <span className="text-emerald-300">Ready for questions</span>
@@ -190,6 +194,17 @@ const QuestionForm = () => {
                       ) : (
                         <span>Processing document…</span>
                       )}
+                      {document.status === "completed" &&
+                        !document.indexed_providers?.includes(provider) && (
+                          <button
+                            type="button"
+                            onClick={() => handleIndex(document.id)}
+                            disabled={loading}
+                            className="text-brand-100 underline-offset-2 transition hover:text-white hover:underline disabled:opacity-50"
+                          >
+                            Index for {provider === "gemini" ? "Gemini" : "OpenAI"}
+                          </button>
+                        )}
                       <button
                         type="button"
                         onClick={() => {

@@ -63,6 +63,7 @@ OpenAI puede reindexarse para Gemini sin volver a cargar el archivo.
 - [Componentes](docs/COMPONENTS.md)
 - [Patrones de diseño](docs/DESIGN_PATTERNS.md)
 - [Prácticas de ingeniería](docs/ENGINEERING_PRACTICES.md)
+- [Guía de estudio para ingenieros](docs/ENGINEER_STUDY_GUIDE.md)
 - [API](docs/API.md)
 - [Observabilidad y diagnóstico](docs/OBSERVABILITY.md)
 - [Seguridad](docs/SECURITY.md)

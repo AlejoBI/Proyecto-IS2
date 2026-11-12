@@ -206,7 +206,7 @@ const QuestionForm = () => {
         <label htmlFor="document" className="text-sm font-semibold text-slate-200">
           Document (.pdf, .docx or .txt)
         </label>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-3 space-y-3">
           <input
             id="document"
             type="file"
@@ -214,58 +214,64 @@ const QuestionForm = () => {
             onChange={(event) => setFile(event.target.files[0])}
             className={`${inputClass} file:bg-brand-500 mt-0 flex-1 file:mr-4 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white`}
           />
-          <button onClick={handleUpload} disabled={loading || !file} className={primaryButton}>
+          <button
+            onClick={handleUpload}
+            disabled={loading || !file}
+            className={`${primaryButton} w-full`}
+          >
             {loading ? "Uploading..." : "Upload document"}
           </button>
         </div>
         {status && <p className="mt-3 text-sm text-emerald-400">{status}</p>}
       </div>
-      <div className="min-h-80 space-y-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-5 lg:sticky lg:top-6 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
-        {responses.length === 0 && (
-          <p className="text-sm text-slate-500">
-            Your answers and document sources will appear here.
-          </p>
-        )}
-        {responses.map((response, index) => (
-          <article
-            key={`${response.question}-${index}`}
-            className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
-          >
-            <p className="text-brand-100 text-sm font-semibold">You asked</p>
-            <p className="mt-1 text-slate-300">{response.question}</p>
-            <p className="text-brand-100 mt-4 text-sm font-semibold">
-              Answer · {response.provider === "gemini" ? "Google Gemini" : "OpenAI"}
+      <div className="flex min-h-0 flex-col gap-4 lg:sticky lg:top-6 lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:h-[calc(100vh-8rem)] lg:max-h-[800px]">
+        <div className="min-h-[320px] min-w-0 flex-1 space-y-4 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950/70 p-5 lg:min-h-0">
+          {responses.length === 0 && (
+            <p className="text-sm text-slate-500">
+              Your answers and document sources will appear here.
             </p>
-            <p className="mt-1 leading-7 whitespace-pre-wrap text-slate-100">{response.answer}</p>
-            {response.sources?.length > 0 && (
-              <p className="mt-4 text-xs text-slate-500">
-                Sources:{" "}
-                {response.sources
-                  .map((source) => source.title)
-                  .filter(Boolean)
-                  .join(", ")}
+          )}
+          {responses.map((response, index) => (
+            <article
+              key={`${response.question}-${index}`}
+              className="rounded-2xl border border-slate-800 bg-slate-900 p-4"
+            >
+              <p className="text-brand-100 text-sm font-semibold">You asked</p>
+              <p className="mt-1 text-slate-300">{response.question}</p>
+              <p className="text-brand-100 mt-4 text-sm font-semibold">
+                Answer · {response.provider === "gemini" ? "Google Gemini" : "OpenAI"}
               </p>
-            )}
-          </article>
-        ))}
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row lg:col-start-2 lg:row-start-5">
-        <input
-          type="text"
-          placeholder="Ask a question about your documents..."
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={(event) => event.key === "Enter" && handleAsk()}
-          disabled={loading}
-          className={`${inputClass} mt-0 flex-1`}
-        />
-        <button
-          onClick={handleAsk}
-          disabled={loading || !question.trim()}
-          className={primaryButton}
-        >
-          {loading ? "Processing..." : "Ask question"}
-        </button>
+              <p className="mt-1 leading-7 whitespace-pre-wrap text-slate-100">{response.answer}</p>
+              {response.sources?.length > 0 && (
+                <p className="mt-4 text-xs text-slate-500">
+                  Sources:{" "}
+                  {response.sources
+                    .map((source) => source.title)
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
+        <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            placeholder="Ask a question about your documents..."
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && handleAsk()}
+            disabled={loading}
+            className={`${inputClass} mt-0 min-w-0 flex-1`}
+          />
+          <button
+            onClick={handleAsk}
+            disabled={loading || !question.trim()}
+            className={`${primaryButton} shrink-0 sm:self-stretch`}
+          >
+            {loading ? "Processing..." : "Ask question"}
+          </button>
+        </div>
       </div>
       {visibleError && (
         <p

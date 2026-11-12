@@ -7,6 +7,20 @@ const inputClass =
 const primaryButton =
   "rounded-xl bg-brand-500 px-5 py-3 font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50";
 
+const formatBytes = (bytes) => {
+  if (!bytes) return "Size unavailable";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const statusStyles = {
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  processing: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  pending: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  failed: "border-red-500/30 bg-red-500/10 text-red-300",
+};
+
 const QuestionForm = () => {
   const [file, setFile] = useState(null);
   const [question, setQuestion] = useState("");
@@ -14,7 +28,16 @@ const QuestionForm = () => {
   const [provider, setProvider] = useState("openai");
   const [showApiKey, setShowApiKey] = useState(false);
   const { sessionInfo, sessionError } = useRagSession();
-  const { responses, documents, status, loading, error, uploadDocument, askQuestion } = useRag();
+  const {
+    responses,
+    documents,
+    status,
+    loading,
+    error,
+    uploadDocument,
+    askQuestion,
+    deleteDocument,
+  } = useRag();
   const visibleError = sessionError || error;
 
   const handleUpload = async () => {
@@ -34,8 +57,8 @@ const QuestionForm = () => {
   };
 
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]">
+      <div className="lg:col-start-1 lg:row-start-1">
         <label htmlFor="llm-provider" className="text-sm font-semibold text-slate-200">
           AI provider
         </label>
@@ -52,7 +75,7 @@ const QuestionForm = () => {
           You can switch providers between questions. Each answer keeps its provider in the history.
         </p>
       </div>
-      <div>
+      <div className="lg:col-start-1 lg:row-start-2">
         <label htmlFor="api-key" className="text-sm font-semibold text-slate-200">
           {provider === "gemini" ? "Google Gemini API key" : "OpenAI API key"}
         </label>
@@ -98,26 +121,88 @@ const QuestionForm = () => {
         </p>
       </div>
       {sessionInfo && (
-        <div className="border-brand-500/20 bg-brand-500/10 text-brand-100 rounded-2xl border px-4 py-3 text-sm">
+        <div className="border-brand-500/20 bg-brand-500/10 text-brand-100 rounded-2xl border px-4 py-3 text-sm lg:col-start-1 lg:row-start-3">
           Session expires {new Date(sessionInfo.expires_at).toLocaleString()} ·{" "}
           {sessionInfo.limits.max_documents} documents · {sessionInfo.limits.max_questions}{" "}
           questions
         </div>
       )}
-      {documents.length > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
-          <h2 className="font-bold text-white">Your saved documents</h2>
-          <ul className="mt-3 space-y-2 text-sm text-slate-300">
-            {documents.map((document) => (
-              <li key={document.id} className="flex justify-between gap-4">
-                <span>{document.title}</span>
-                <span className="text-emerald-400">{document.status}</span>
-              </li>
-            ))}
-          </ul>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-5 lg:col-start-1 lg:row-start-4">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-bold text-white">Documents in this session</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {documents.length} document{documents.length === 1 ? "" : "s"} · Only completed
+              documents can answer questions
+            </p>
+          </div>
+          <span className="text-xs text-slate-500">Provider-specific indexes</span>
         </div>
-      )}
-      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-5">
+        {documents.length === 0 ? (
+          <p className="mt-4 rounded-xl border border-dashed border-slate-800 px-4 py-5 text-sm text-slate-500">
+            No documents uploaded yet. Add a PDF, DOCX or TXT file to start.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {documents.map((document) => {
+              const statusClass = statusStyles[document.status] || statusStyles.failed;
+              return (
+                <li
+                  key={document.id}
+                  className="rounded-xl border border-slate-800 bg-slate-900/80 p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-100" title={document.title}>
+                        📄 {document.title || "Untitled document"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatBytes(document.size_bytes)}
+                        {document.created_at &&
+                          ` · ${new Date(document.created_at).toLocaleString()}`}
+                        {document.checksum && ` · #${document.checksum}`}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase ${statusClass}`}
+                    >
+                      {document.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <span className="rounded-full bg-slate-800 px-2.5 py-1">
+                      {document.provider === "gemini"
+                        ? "Google Gemini"
+                        : document.provider === "openai"
+                          ? "OpenAI"
+                          : "Provider not recorded"}
+                    </span>
+                    {document.status === "completed" ? (
+                      <span className="text-emerald-300">Ready for questions</span>
+                    ) : document.status === "failed" ? (
+                      <span className="text-red-300">Upload again to retry processing</span>
+                    ) : (
+                      <span>Processing document…</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Remove ${document.title || "this document"}?`)) {
+                          deleteDocument(document.id);
+                        }
+                      }}
+                      className="ml-auto text-slate-500 underline-offset-2 transition hover:text-red-300 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-5 lg:col-start-1 lg:row-start-5">
         <label htmlFor="document" className="text-sm font-semibold text-slate-200">
           Document (.pdf, .docx or .txt)
         </label>
@@ -135,7 +220,7 @@ const QuestionForm = () => {
         </div>
         {status && <p className="mt-3 text-sm text-emerald-400">{status}</p>}
       </div>
-      <div className="min-h-80 space-y-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
+      <div className="min-h-80 space-y-4 rounded-2xl border border-slate-800 bg-slate-950/70 p-5 lg:sticky lg:top-6 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
         {responses.length === 0 && (
           <p className="text-sm text-slate-500">
             Your answers and document sources will appear here.
@@ -164,7 +249,7 @@ const QuestionForm = () => {
           </article>
         ))}
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row lg:col-start-2 lg:row-start-5">
         <input
           type="text"
           placeholder="Ask a question about your documents..."
@@ -185,7 +270,7 @@ const QuestionForm = () => {
       {visibleError && (
         <p
           role="alert"
-          className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300"
+          className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300 lg:col-span-2"
         >
           {visibleError}
         </p>

@@ -25,6 +25,9 @@ class Document(pydantic.BaseModel):
     owner_email: Optional[str] = None
     expires_at: Optional[str] = None
     checksum: Optional[str] = None
+    size_bytes: Optional[int] = None
+    provider: Optional[str] = None
+    created_at: Optional[str] = None
     status: DocumentStatus = DocumentStatus.COMPLETED
     similarity: Optional[float] = None
 

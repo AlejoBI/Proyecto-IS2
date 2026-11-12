@@ -24,8 +24,8 @@ const HomePage = () => {
           Ask your documents.
         </h1>
         <p className="text-brand-100 mt-4 max-w-2xl text-lg">
-          Upload a document and ask questions using your own OpenAI key. Your key is never stored by
-          this application.
+          Upload a document and ask questions using your own OpenAI or Gemini key. Your key is never
+          stored by this application.
         </p>
       </header>
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl sm:p-8">
@@ -39,8 +39,8 @@ const HomePage = () => {
           </div>
           <h2 className="mt-5 text-xl font-bold text-white">Upload your documents</h2>
           <p className="mt-3 leading-7 text-slate-400">
-            Choose a PDF, DOCX or TXT file and provide your own OpenAI API key. The document is
-            processed into searchable text and vectors.
+            Choose a PDF, DOCX or TXT file and provide your own OpenAI or Gemini API key. The
+            document is processed into searchable text and vectors.
           </p>
         </article>
         <article className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
@@ -106,7 +106,7 @@ const HomePage = () => {
             ["FastAPI", "Receives requests, validates files and protects user routes."],
             ["MongoDB", "Stores accounts, document metadata and registered-user history."],
             ["ChromaDB", "Indexes document fragments for semantic retrieval."],
-            ["OpenAI", "Creates embeddings and answers using the retrieved context."],
+            ["OpenAI / Gemini", "Create embeddings and answers using the retrieved context."],
           ].map(([name, description]) => (
             <div key={name}>
               <h3 className="font-bold text-white">{name}</h3>

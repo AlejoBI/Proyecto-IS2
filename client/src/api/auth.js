@@ -49,6 +49,16 @@ export const getMyDocumentsRequest = async () => {
   return res.data;
 };
 
+export const getSessionDocumentsRequest = async () => {
+  const res = await axios.get(`/session/documents`);
+  return res.data;
+};
+
+export const deleteSessionDocumentRequest = async (documentId) => {
+  const res = await axios.delete(`/session/documents/${documentId}`);
+  return res.data;
+};
+
 export const getMyHistoryRequest = async () => {
   const res = await axios.get(`/me/history`);
   return res.data;

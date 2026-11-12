@@ -17,6 +17,20 @@ from server.adapters.openai_adapter import ProviderError
 rag_router = APIRouter()
 
 
+def _document_summary(document) -> Dict[str, Any]:
+    return {
+        "id": document.id,
+        "title": document.title,
+        "status": document.status.value,
+        "provider": document.provider,
+        "size_bytes": document.size_bytes,
+        "created_at": document.created_at,
+        "checksum": document.checksum[:12] if document.checksum else None,
+        "error": "Document processing failed"
+        if document.status == DocumentStatus.FAILED else None,
+    }
+
+
 @rag_router.get("/session", status_code=200)
 def create_session(session: SessionContext = Depends(dependencies.get_session_context)) -> Dict[str, Any]:
     configs = configurations.Settings()
@@ -29,6 +43,39 @@ def create_session(session: SessionContext = Depends(dependencies.get_session_co
             "max_questions": configs.MAX_QUESTIONS_PER_SESSION,
         },
     }
+
+
+@rag_router.get("/session/documents", status_code=200)
+def get_session_documents(
+    session: SessionContext = Depends(dependencies.get_session_context),
+) -> list[Dict[str, Any]]:
+    mongo, _, _, _ = dependencies.InfrastructureSingleton.get()
+    return [_document_summary(document) for document in mongo.get_session_documents(session.id)]
+
+
+@rag_router.delete("/session/documents/{document_id}", status_code=200)
+def delete_session_document(
+    document_id: str,
+    session: SessionContext = Depends(dependencies.get_session_context),
+    current_user: Optional[dict] = Depends(dependencies.get_optional_user),
+) -> Dict[str, str]:
+    mongo, chroma, _, _ = dependencies.InfrastructureSingleton.get()
+    document = next(
+        (item for item in mongo.get_session_documents(session.id) if item.id == document_id),
+        None,
+    )
+    if not document or (current_user and document.owner_email != current_user.get("sub")):
+        raise HTTPException(status_code=404, detail="Document not found in this session")
+
+    chroma.delete_document(document_id)
+    mongo.delete_document(document_id)
+    if document.path:
+        Path(document.path).unlink(missing_ok=True)
+    mongo.sessions.update_one(
+        {"id": session.id},
+        {"$inc": {"document_count": -1, "storage_used": -(document.size_bytes or 0)}},
+    )
+    return {"status": "Document deleted"}
 
 
 @rag_router.get("/generate-answer", status_code=200)
@@ -126,7 +173,7 @@ def get_my_documents(
     current_user: dict = Depends(dependencies.get_current_user),
 ) -> list[Dict[str, Any]]:
     mongo, _, _, _ = dependencies.InfrastructureSingleton.get()
-    return [document.model_dump() for document in mongo.get_user_documents(current_user["sub"])]
+    return [_document_summary(document) for document in mongo.get_user_documents(current_user["sub"])]
 
 
 @rag_router.get("/me/history")

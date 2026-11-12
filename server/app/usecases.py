@@ -132,6 +132,7 @@ class RAGService:
                             owner_email=owner_email,
                             expires_at=expires_at.isoformat() if expires_at else None,
                             checksum=checksum or hashlib.sha256(payload).hexdigest(),
+                            size_bytes=len(payload), provider=provider,
                             status=DocumentStatus.PROCESSING)
 
         # strategies

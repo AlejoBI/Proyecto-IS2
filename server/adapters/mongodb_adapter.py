@@ -120,6 +120,9 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
                                 content=document.get("content"), session_id=document.get("session_id"),
                                 owner_email=document.get("owner_email"),
                                 expires_at=self._expiry_as_string(document.get("expires_at")),
+                                checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
+                                provider=document.get("provider"),
+                                created_at=self._expiry_as_string(document.get("created_at")),
                                 status=document.get("status", "completed"))
                 for document in documents]
 
@@ -130,7 +133,8 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
         self.documents.insert_one(
             {"id": document.id, "title": document.title, "path": document.path, "content": document.content,
              "session_id": document.session_id, "expires_at": expires_at,
-             "checksum": document.checksum, "status": document.status.value,
+             "checksum": document.checksum, "size_bytes": document.size_bytes,
+             "provider": document.provider, "status": document.status.value,
              "owner_email": document.owner_email,
              "created_at": datetime.now(timezone.utc)})
 
@@ -162,6 +166,9 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
                                    session_id=document.get("session_id"),
                                    owner_email=document.get("owner_email"),
                                    expires_at=self._expiry_as_string(document.get("expires_at")),
+                                   checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
+                                   provider=document.get("provider"),
+                                   created_at=self._expiry_as_string(document.get("created_at")),
                                    status=document.get("status", "completed"))
         return None
 
@@ -172,6 +179,9 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             content=document.get("content"), session_id=document.get("session_id"),
             owner_email=document.get("owner_email"),
             expires_at=self._expiry_as_string(document.get("expires_at")),
+            checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
+            provider=document.get("provider"),
+            created_at=self._expiry_as_string(document.get("created_at")),
             status=document.get("status", "completed"),
         ) for document in documents]
 
@@ -182,6 +192,9 @@ class MongoDBAdapter(ports.MongoDBRepositoryPort):
             content=document.get("content"), session_id=document.get("session_id"),
             owner_email=document.get("owner_email"),
             expires_at=self._expiry_as_string(document.get("expires_at")),
+            checksum=document.get("checksum"), size_bytes=document.get("size_bytes"),
+            provider=document.get("provider"),
+            created_at=self._expiry_as_string(document.get("created_at")),
             status=document.get("status", "completed"),
         ) for document in documents]
 

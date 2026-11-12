@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   generateAnswerRequest,
-  getMyDocumentsRequest,
+  getSessionDocumentsRequest,
+  deleteSessionDocumentRequest,
   getMyHistoryRequest,
   uploadDocumentRequest,
 } from "../api/auth";
@@ -16,10 +17,12 @@ export const useRag = () => {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    Promise.all([getMyDocumentsRequest(), getMyHistoryRequest()])
-      .then(([savedDocuments, history]) => {
-        setDocuments(savedDocuments);
+    Promise.all([
+      getSessionDocumentsRequest(),
+      isAuthenticated ? getMyHistoryRequest() : Promise.resolve([]),
+    ])
+      .then(([sessionDocuments, history]) => {
+        setDocuments(sessionDocuments);
         setResponses(
           [...history].reverse().map(({ question, answer, sources, provider }) => ({
             question,
@@ -43,7 +46,7 @@ export const useRag = () => {
     try {
       const response = await uploadDocumentRequest(formData, apiKey.trim(), provider);
       setStatus(response.status);
-      if (isAuthenticated) setDocuments(await getMyDocumentsRequest());
+      setDocuments(await getSessionDocumentsRequest());
       return response;
     } catch (requestError) {
       const message = requestError.response?.data?.detail || "Error uploading document.";
@@ -51,6 +54,17 @@ export const useRag = () => {
       throw requestError;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteDocument = async (documentId) => {
+    setError(null);
+    try {
+      await deleteSessionDocumentRequest(documentId);
+      setDocuments((previous) => previous.filter((document) => document.id !== documentId));
+    } catch (requestError) {
+      setError(requestError.response?.data?.detail || "Error deleting document.");
+      throw requestError;
     }
   };
 
@@ -78,5 +92,14 @@ export const useRag = () => {
     }
   };
 
-  return { responses, documents, status, loading, error, uploadDocument, askQuestion };
+  return {
+    responses,
+    documents,
+    status,
+    loading,
+    error,
+    uploadDocument,
+    askQuestion,
+    deleteDocument,
+  };
 };

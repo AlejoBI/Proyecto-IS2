@@ -46,7 +46,7 @@ envía únicamente en el encabezado de esa solicitud y no se almacena. Para
 Gemini, define en el entorno del backend:
 
 ```env
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.8-flash
 GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
 ```

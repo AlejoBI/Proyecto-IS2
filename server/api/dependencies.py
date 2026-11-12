@@ -81,7 +81,8 @@ def get_session_context(request: Request, response: Response) -> SessionContext:
     context = sessions.create_or_refresh(request.cookies.get("rag_session_id"),
                                          configs.SESSION_IDLE_MINUTES,
                                          configs.SESSION_MAX_HOURS)
-    response.set_cookie("rag_session_id", context.id, httponly=True, samesite="lax",
+    response.set_cookie("rag_session_id", context.id, httponly=True,
+                        samesite=configs.COOKIE_SAMESITE,
                         secure=configs.COOKIE_SECURE,
                         max_age=configs.SESSION_MAX_HOURS * 3600)
     return context

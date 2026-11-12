@@ -16,4 +16,4 @@ COPY media ./media
 
 EXPOSE 8000
 
-CMD ["poetry", "run", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "poetry run uvicorn server.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

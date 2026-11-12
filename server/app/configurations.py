@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     REACT_VITE_CONNECTION: str
     ALLOWED_ORIGINS: str = "http://localhost:5173"
     COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
 
     # Hashing
     SECRET_ACCESS_TOKEN: str
@@ -23,8 +24,8 @@ class Settings(BaseSettings):
     MONGODB_COLLECTION_DOCUMENTS: str
 
     # ConfiguraciÃ³n para OpenAI
-    # Optional legacy key for local development. Public deployments must use
-    # the request-scoped X-OpenAI-API-Key instead.
+    # Optional legacy key for local development. Public deployments use the
+    # request-scoped X-LLM-API-Key instead.
     OPENAI_API_KEY: str = ""
     MODEL: str
     GEMINI_MODEL: str = "gemini-3.8-flash"

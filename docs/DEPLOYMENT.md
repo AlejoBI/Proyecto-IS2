@@ -99,3 +99,174 @@ poetry run python -m server.scripts.backup --prune-only
 `BACKUP_RETENTION_DAYS` controla la limpieza automática. En producción, los
 directorios generados deben copiarse a almacenamiento externo u object
 storage antes de aplicar la retención local.
+
+## Despliegue recomendado: Cloudflare Pages + Render
+
+Esta sección describe el despliegue de producción recomendado para este
+repositorio:
+
+```text
+Cloudflare Pages (React/Vite) --> Render (FastAPI/Docker) --> MongoDB Atlas
+                                             |
+                                             +--> Redis administrado (opcional)
+```
+
+### 1. MongoDB Atlas
+
+1. Crear un cluster y una base de datos.
+2. Crear un usuario de base de datos con permisos sobre `proyecto_is2`.
+3. En **Network Access**, autorizar las conexiones del servicio de Render.
+   Para una prueba temporal puede usarse `0.0.0.0/0`, pero en producción se
+   recomienda restringir la red según la estrategia de acceso elegida.
+4. Copiar la URI SRV, por ejemplo:
+
+```text
+mongodb+srv://usuario:password@cluster.mongodb.net/?retryWrites=true&w=majority
+```
+
+La contraseña debe estar URL-encoded si contiene caracteres especiales.
+
+### 2. Backend en Render
+
+Crear **New → Web Service**, conectar el repositorio y seleccionar el runtime
+Docker. Render utilizará el `Dockerfile` del repositorio. El contenedor escucha
+el `PORT` proporcionado por Render y usa `8000` como fallback local.
+
+Configurar el health check como:
+
+```text
+/ready
+```
+
+No usar `/health` como única comprobación de producción: `/health` confirma que
+el proceso vive, mientras `/ready` verifica la conexión con MongoDB.
+
+#### Disco persistente
+
+ChromaDB y los archivos cargados deben escribirse en un disco persistente de
+Render. Crear un disk con:
+
+```text
+Mount path: /var/data
+```
+
+Usar un plan de Render que soporte persistent disks. Los planes gratuitos no
+son adecuados para conservar ChromaDB y archivos entre despliegues.
+
+#### Variables de entorno del backend
+
+Configurar estas variables en **Render → Environment**. No subirlas al
+repositorio:
+
+```env
+APP_HOST=0.0.0.0
+APP_PORT=8000
+
+REACT_VITE_CONNECTION=https://tu-proyecto.pages.dev
+ALLOWED_ORIGINS=https://tu-proyecto.pages.dev
+COOKIE_SECURE=true
+COOKIE_SAMESITE=none
+
+ALGORITHM=HS256
+SECRET_ACCESS_TOKEN=<secreto-largo-aleatorio>
+
+MONGODB_URI=mongodb+srv://usuario:password@cluster.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DATABASE=proyecto_is2
+MONGODB_COLLECTION_USERS=users
+MONGODB_COLLECTION_DOCUMENTS=documents
+
+OPENAI_API_KEY=
+MODEL=gpt-4o-mini
+EMBEDDING_MODEL=text-embedding-3-small
+
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+
+MAX_TOKENS=500
+TEMPERATURE=0.2
+NUMBER_OF_VECTORIAL_RESULTS=3
+CHROMA_PATH=/var/data/chroma_data
+MEDIA_PATH=/var/data/media
+
+SESSION_IDLE_MINUTES=30
+SESSION_MAX_HOURS=2
+MAX_FILE_SIZE_BYTES=10485760
+MAX_DOCUMENTS_PER_SESSION=5
+MAX_STORAGE_BYTES_PER_SESSION=52428800
+MAX_QUESTIONS_PER_SESSION=20
+MAX_QUERY_LENGTH=2000
+CHUNK_SIZE_TOKENS=2048
+
+OPENAI_TIMEOUT_SECONDS=30
+OPENAI_MAX_RETRIES=2
+RATE_LIMIT_REQUESTS=30
+RATE_LIMIT_WINDOW_SECONDS=60
+REDIS_URL=
+REDIS_RATE_LIMIT_PREFIX=proyecto-is2:rate
+CLEANUP_INTERVAL_SECONDS=600
+BACKUP_DIR=/var/data/backups
+BACKUP_RETENTION_DAYS=7
+ALLOWED_FILE_EXTENSIONS=.pdf,.docx,.txt
+```
+
+`OPENAI_API_KEY` debe permanecer vacío en modo BYOK. La clave de OpenAI o
+Gemini la introduce cada usuario en el frontend y se envía en
+`X-LLM-API-Key`. Nunca colocar una clave en una variable `VITE_*`.
+
+Si se configura Redis administrado, asignar su URL a `REDIS_URL`; si se deja
+vacío, el backend utiliza un limiter en memoria válido para una sola instancia.
+
+### 3. Frontend en Cloudflare Pages
+
+Crear un proyecto Pages conectado al repositorio. Como el repositorio contiene
+backend y frontend, configurar:
+
+```text
+Root directory: client
+Build command: npm run build
+Build output directory: dist
+```
+
+En **Settings → Environment variables**, agregar para Production:
+
+```env
+VITE_API_URL=https://tu-backend.onrender.com
+```
+
+Después del primer despliegue, copiar el dominio real de Cloudflare Pages y
+actualizar en Render:
+
+```env
+REACT_VITE_CONNECTION=https://tu-proyecto.pages.dev
+ALLOWED_ORIGINS=https://tu-proyecto.pages.dev
+```
+
+Si se agrega un dominio personalizado, usar ese dominio exacto y no dejar el
+valor de ejemplo. Si se mantienen frontend y backend en dominios distintos,
+`COOKIE_SAMESITE=none` y `COOKIE_SECURE=true` son necesarios para que las
+cookies HttpOnly funcionen en solicitudes cross-site con `withCredentials`.
+
+### 4. Orden de validación
+
+1. Abrir `https://tu-backend.onrender.com/health`.
+2. Abrir `https://tu-backend.onrender.com/ready` y verificar MongoDB Atlas.
+3. Abrir el frontend de Cloudflare Pages.
+4. Confirmar en el navegador que `GET /session` responde sin error CORS.
+5. Registrar un usuario, cerrar sesión y volver a iniciar sesión.
+6. Cargar un TXT pequeño con OpenAI o Gemini.
+7. Hacer una pregunta y confirmar que devuelve fuentes.
+8. Cambiar de proveedor y usar `Index for Gemini` o `Index for OpenAI`.
+
+### 5. Errores frecuentes
+
+- **CORS:** `ALLOWED_ORIGINS` debe contener únicamente el origen exacto del
+  frontend, incluyendo `https://` y sin una barra final.
+- **Sesión no persistente:** comprobar `COOKIE_SECURE=true`,
+  `COOKIE_SAMESITE=none`, HTTPS y que Axios use `withCredentials`.
+- **Archivos o vectores desaparecen:** comprobar que `/var/data` sea un disk
+  persistente y que `CHROMA_PATH` y `MEDIA_PATH` estén debajo de ese path.
+- **Render no está listo:** revisar `/ready`, `MONGODB_URI`, credenciales y
+  reglas de red de Atlas.
+- **Frontend apunta a localhost:** revisar `VITE_API_URL` y volver a desplegar
+  Pages; las variables `VITE_*` se incorporan durante el build.

@@ -41,7 +41,7 @@ def login_user(
         value=user_data["access_token"],
         httponly=True,
         secure=configs.COOKIE_SECURE,
-        samesite="lax",
+        samesite=configs.COOKIE_SAMESITE,
         max_age=1800,
     )
     return {

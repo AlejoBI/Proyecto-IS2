@@ -1,5 +1,4 @@
-const accessRequestUrl =
-  "https://github.com/AlejoBI/Proyecto-IS2/issues/new?title=Solicitud%20de%20acceso%20a%20la%20demo";
+const portfolioUrl = "https://alejandrobravoisajar.vercel.app";
 
 const DemoNotice = ({ compact = false }) => {
   if (compact) {
@@ -16,12 +15,12 @@ const DemoNotice = ({ compact = false }) => {
               request an activation window from the project team.
             </p>
             <a
-              href={accessRequestUrl}
+              href={portfolioUrl}
               target="_blank"
               rel="noreferrer"
               className="mt-2 inline-flex text-xs font-bold text-amber-100 underline decoration-amber-300/50 underline-offset-4 transition hover:text-white"
             >
-              Request test access →
+              Contact the project team →
             </a>
           </div>
         </div>
@@ -57,12 +56,12 @@ const DemoNotice = ({ compact = false }) => {
         </div>
         <div className="flex flex-col gap-3 lg:min-w-52 lg:items-stretch">
           <a
-            href={accessRequestUrl}
+            href={portfolioUrl}
             target="_blank"
             rel="noreferrer"
             className="rounded-xl bg-amber-300 px-5 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-amber-200"
           >
-            Solicitar acceso de prueba
+            Ir al portafolio y contactar
           </a>
           <p className="text-center text-xs leading-5 text-amber-100/60 lg:max-w-52">
             La disponibilidad puede variar según la capacidad gratuita.

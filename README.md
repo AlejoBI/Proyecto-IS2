@@ -58,6 +58,7 @@ OpenAI puede reindexarse para Gemini sin volver a cargar el archivo.
 
 ## Documentación
 
+- [Guía de presentación del sistema RAG](docs/GUIA-PRESENTACION-RAG.md)
 - [Arquitectura](docs/ARCHITECTURE.md)
 - [Flujo RAG](docs/RAG_FLOW.md)
 - [Componentes](docs/COMPONENTS.md)
